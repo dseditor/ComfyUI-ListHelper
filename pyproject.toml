@@ -1,0 +1,16 @@
+[project]
+name = "Listhelper"
+description = "The ListHelper collection is a comprehensive set of custom nodes for ComfyUI that provides powerful list manipulation capabilities. This collection includes audio processing, text splitting, and number generation tools for enhanced workflow automation."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["regex"]
+
+[project.urls]
+Repository = "https://github.com/dseditor/ComfyUI-ListHelper"
+#  Used by Comfy Registry https://registry.comfy.org
+
+[tool.comfy]
+PublisherId = "dseditor"
+DisplayName = "ComfyUI-ListHelper"
+Icon = ""
+includes = []
