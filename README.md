@@ -15,9 +15,6 @@ The **ListHelper** collection is a comprehensive set of custom nodes for ComfyUI
 1. [AudioListCombine](#audiolistcombine-node)
 2. [NumberListGenerator](#numberlistgenerator-node)
 3. [PromptSplitByDelimiter](#promptsplitbydelimiter-node)
-4. [AudioToFrameCount](#AudioToFrameCount)
-5. [AudioSplitToList](#AudioSplitToList)
-6. [CeilDivide](#CeilDivide)
 
 ---
 
@@ -262,6 +259,9 @@ Output: ["Chapter3", "Chapter1"] (randomized)
 1. [AudioListCombine 音頻列表合併](#audiolistcombine-音頻列表合併節點)
 2. [NumberListGenerator 數字列表生成器](#numberlistgenerator-數字列表生成節點)
 3. [PromptSplitByDelimiter 提示分割器](#promptsplitbydelimiter-提示分割節點)
+4. [AudioToFrameCount](#AudioToFrameCount)
+5. [AudioSplitToList](#AudioSplitToList)
+6. [CeilDivide](#CeilDivide)
 
 ---
 
