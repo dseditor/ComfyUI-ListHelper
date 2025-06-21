@@ -15,15 +15,15 @@ The **ListHelper** collection is a comprehensive set of custom nodes for ComfyUI
 1. [AudioListCombine](#audiolistcombine-node)
 2. [NumberListGenerator](#numberlistgenerator-node)
 3. [PromptSplitByDelimiter](#promptsplitbydelimiter-node)
-4. [AudioToFrameCount]
-5. [AudioSplitToList]
-6. [CeilDivide]
+4. [AudioToFrameCount](#AudioToFrameCount)
+5. [AudioSplitToList](#AudioSplitToList)
+6. [CeilDivide](#CeilDivide)
 
 ---
 
 ## AudioListCombine Node
 
-![Demo](readme/demo.jpg)
+![Demo](Readme/demo.jpg)
 
 ### Overview
 
@@ -106,7 +106,7 @@ Sound Effect 2  →
 
 ## NumberListGenerator Node
 
-![Demo](readme/demo1.jpg)
+![Demo](Readme/demo1.jpg)
 
 ### Overview
 The NumberListGenerator node creates lists of numbers with customizable parameters, supporting both sequential and randomized output. It's perfect for batch processing, parameter sweeping, or any workflow requiring controlled number sequences.
@@ -153,7 +153,7 @@ Output: [16, 1, 31, 6, 21, 11, 26, 36] (shuffled)
 
 ## PromptSplitByDelimiter Node
 
-![Demo](readme/demo2.jpg)
+![Demo](Readme/demo2.jpg)
 
 ### Overview
 
@@ -504,7 +504,7 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 
 ## AudioToFrameCount
 
-![Demo](readme/demo3.jpg)
+![Demo](Readme/demo3.jpg)
 
 ### 功能特色
 
@@ -512,7 +512,7 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 
 ## CeilDivide
 
-![Demo](readme/demo4.jpg)
+![Demo](Readme/demo4.jpg)
 
 ### 功能特色
 
@@ -520,7 +520,7 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 
 ## AudioSplitToList
 
-![Demo](readme/demo5.jpg)
+![Demo](Readme/demo5.jpg)
 
 ### 功能特色
 
