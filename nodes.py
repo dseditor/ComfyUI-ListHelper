@@ -34,6 +34,10 @@ class AudioListGenerator:
                 "videofps": ("FLOAT", {"default": 23.976, "min": 1.0, "step": 0.001}),
                 "samplefps": ("INT", {"default": 81, "min": 1}),
                 "pad_last_segment": ("BOOLEAN", {"default": True}),
+            },
+            "optional": {
+                "crossfade_duration": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 2.0, "step": 0.01}),
+                "crossfade_type": (["linear", "cosine", "equal_power"], {"default": "cosine"}),
             }
         }
 
@@ -43,33 +47,135 @@ class AudioListGenerator:
     FUNCTION = "split"
     CATEGORY = "ListHelper"
 
-    def split(self, waveform, videofps, samplefps, pad_last_segment):
+    def split(self, waveform, videofps, samplefps, pad_last_segment, crossfade_duration=0.1, crossfade_type="cosine"):
         audio_tensor = waveform["waveform"]         # shape: [1, C, N]
         sample_rate = waveform["sample_rate"]
         total_samples = audio_tensor.shape[-1]
 
         segment_duration_seconds = samplefps / videofps
         samples_per_segment = int(segment_duration_seconds * sample_rate)
+        crossfade_samples = int(crossfade_duration * sample_rate)
 
         audio_list = []
 
+        # 確保交叉淡化時間不會超過段落長度的一半
+        crossfade_samples = min(crossfade_samples, samples_per_segment // 2)
+
         for i in range(0, total_samples, samples_per_segment):
             end_idx = min(i + samples_per_segment, total_samples)
-            segment = audio_tensor[:, :, i:end_idx].clone()
+            
+            # 計算實際的開始和結束位置，考慮交叉淡化
+            actual_start = max(0, i - crossfade_samples) if i > 0 else 0
+            actual_end = min(total_samples, end_idx + crossfade_samples) if end_idx < total_samples else end_idx
+            
+            # 提取包含交叉淡化部分的音頻段
+            extended_segment = audio_tensor[:, :, actual_start:actual_end].clone()
+            
+            # 應用交叉淡化效果
+            if crossfade_samples > 0:
+                extended_segment = self._apply_crossfade(
+                    extended_segment, 
+                    crossfade_samples, 
+                    crossfade_type,
+                    actual_start, 
+                    i, 
+                    end_idx, 
+                    actual_end
+                )
 
-            segment_len = segment.shape[-1]
-            if pad_last_segment and segment_len < samples_per_segment:
+            # 如果需要填充最後一個段落
+            segment_len = extended_segment.shape[-1]
+            if pad_last_segment and end_idx == total_samples and segment_len < samples_per_segment:
                 pad_len = samples_per_segment - segment_len
-                segment = F.pad(segment, (0, pad_len))
+                extended_segment = F.pad(extended_segment, (0, pad_len))
 
             audio_obj = {
-                "waveform": segment,
+                "waveform": extended_segment,
                 "sample_rate": sample_rate
             }
 
             audio_list.append(copy.deepcopy(audio_obj))
 
         return len(audio_list), audio_list
+
+    def _apply_crossfade(self, segment, crossfade_samples, crossfade_type, actual_start, segment_start, segment_end, actual_end):
+        """
+        對音頻段應用交叉淡化效果
+        
+        Args:
+            segment: 音頻段張量 [1, C, T]
+            crossfade_samples: 交叉淡化的樣本數
+            crossfade_type: 交叉淡化類型
+            actual_start: 實際開始位置
+            segment_start: 段落開始位置
+            segment_end: 段落結束位置
+            actual_end: 實際結束位置
+        """
+        if crossfade_samples == 0:
+            return segment
+
+        segment_length = segment.shape[-1]
+        
+        # 創建淡化曲線
+        fade_curve = self._create_fade_curve(crossfade_samples, crossfade_type)
+        
+        # 應用淡入效果（段落開始處）
+        if actual_start < segment_start:
+            fade_in_length = min(crossfade_samples, segment_length)
+            fade_in_curve = fade_curve[:fade_in_length]
+            
+            # 擴展維度以匹配音頻張量 [1, C, fade_in_length]
+            fade_in_curve = fade_in_curve.unsqueeze(0).unsqueeze(0)
+            fade_in_curve = fade_in_curve.expand(segment.shape[0], segment.shape[1], -1)
+            
+            segment[:, :, :fade_in_length] *= fade_in_curve
+
+        # 應用淡出效果（段落結束處）
+        if actual_end > segment_end:
+            fade_out_length = min(crossfade_samples, segment_length)
+            fade_out_curve = fade_curve[:fade_out_length].flip(0)  # 反轉淡化曲線
+            
+            # 擴展維度以匹配音頻張量
+            fade_out_curve = fade_out_curve.unsqueeze(0).unsqueeze(0)
+            fade_out_curve = fade_out_curve.expand(segment.shape[0], segment.shape[1], -1)
+            
+            segment[:, :, -fade_out_length:] *= fade_out_curve
+
+        return segment
+
+    def _create_fade_curve(self, length, fade_type):
+        """
+        創建淡化曲線
+        
+        Args:
+            length: 淡化長度（樣本數）
+            fade_type: 淡化類型 ("linear", "cosine", "equal_power")
+        
+        Returns:
+            淡化曲線張量
+        """
+        import torch
+        import math
+        
+        if fade_type == "linear":
+            # 線性淡化：從0到1
+            curve = torch.linspace(0.0, 1.0, length)
+            
+        elif fade_type == "cosine":
+            # 餘弦淡化：更平滑的過渡
+            t = torch.linspace(0.0, math.pi/2, length)
+            curve = torch.sin(t)
+            
+        elif fade_type == "equal_power":
+            # 等功率淡化：保持總功率恆定
+            t = torch.linspace(0.0, math.pi/2, length)
+            curve = torch.sin(t)
+            
+        else:
+            # 預設使用線性淡化
+            curve = torch.linspace(0.0, 1.0, length)
+        
+        return curve
 
 class AudioToFrameCount:
     @classmethod
@@ -812,6 +918,176 @@ class SaveVideoPath:
         )
         
         return (full_path,)
+        
+class TimestampToLrcNode:
+    """
+    ComfyUI節點：將時間戳格式轉換為LRC歌詞格式
+    """
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "input_text": ("STRING", {
+                    "multiline": True,
+                    "default": ""
+                }),
+            }
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("lrc_output",)
+    FUNCTION = "convert_to_lrc"
+    CATEGORY = "text/processing"
+    
+    def convert_to_lrc(self, input_text):
+        """
+        將時間戳格式轉換為LRC格式
+        輸入格式: >> 0:00-0:04\n>> 文本內容
+        輸出格式: [00:00.00]文本內容
+        """
+        
+        lines = input_text.strip().split('\n')
+        lrc_lines = []
+        current_time = None
+        current_text = ""
+        
+        for line in lines:
+            line = line.strip()
+            
+            # 檢查是否為時間戳行 (格式: >> 0:00-0:04)
+            time_match = re.match(r'^>>\s*(\d+):(\d+)-(\d+):(\d+)$', line)
+            if time_match:
+                # 如果之前有累積的文本，先處理它
+                if current_time is not None and current_text.strip():
+                    lrc_lines.append(f"[{current_time}]{current_text.strip()}")
+                
+                # 解析開始時間
+                start_min = int(time_match.group(1))
+                start_sec = int(time_match.group(2))
+                current_time = f"{start_min:02d}:{start_sec:02d}.00"
+                current_text = ""
+                
+            # 檢查是否為文本行 (格式: >> 文本內容)
+            elif line.startswith('>> '):
+                text_content = line[3:].strip()  # 移除 ">> " 前綴
+                if text_content:  # 只添加非空文本
+                    if current_text:
+                        current_text += " " + text_content
+                    else:
+                        current_text = text_content
+            
+            # 處理空行或其他格式
+            elif line == '' or line == '>>':
+                # 空行保持當前狀態，不做處理
+                continue
+            else:
+                # 其他格式的行，嘗試作為文本處理
+                if line and current_time is not None:
+                    if current_text:
+                        current_text += " " + line
+                    else:
+                        current_text = line
+        
+        # 處理最後一段文本
+        if current_time is not None and current_text.strip():
+            lrc_lines.append(f"[{current_time}]{current_text.strip()}")
+        
+        # 合併結果
+        lrc_output = '\n'.join(lrc_lines)
+        
+        return (lrc_output,)
+
+try:
+    import opencc
+except ImportError:
+    print("請安裝opencc庫: pip install opencc-python-reimplemented")
+    opencc = None
+
+class ChineseConverterNode:
+    """
+    ComfyUI節點：中文簡繁轉換
+    使用opencc庫進行高質量轉換
+    布林開關控制：True=簡體轉繁體，False=繁體轉簡體
+    """
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "input_text": ("STRING", {
+                    "multiline": True,
+                    "default": ""
+                }),
+                "simp_to_trad": ("BOOLEAN", {
+                    "default": True,
+                    "label_on": "簡體→繁體",
+                    "label_off": "繁體→簡體"
+                }),
+            }
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("converted_text",)
+    FUNCTION = "convert_chinese"
+    CATEGORY = "text/processing"
+    
+    def __init__(self):
+        """初始化轉換器"""
+        if opencc is None:
+            self.s2t_converter = None
+            self.t2s_converter = None
+            print("錯誤：opencc庫未安裝，請執行: pip install opencc-python-reimplemented")
+        else:
+            try:
+                # 簡體轉繁體轉換器
+                self.s2t_converter = opencc.OpenCC('s2t.json')
+                # 繁體轉簡體轉換器  
+                self.t2s_converter = opencc.OpenCC('t2s.json')
+            except Exception as e:
+                print(f"opencc初始化失敗: {e}")
+                self.s2t_converter = None
+                self.t2s_converter = None
+    
+    def convert_chinese(self, input_text, simp_to_trad):
+        """
+        轉換中文文本
+        
+        Args:
+            input_text: 輸入文本
+            simp_to_trad: True=簡體轉繁體，False=繁體轉簡體
+            
+        Returns:
+            轉換後的文本
+        """
+        
+        if not input_text.strip():
+            return ("",)
+        
+        # 檢查opencc是否可用
+        if opencc is None:
+            error_msg = "錯誤：請先安裝opencc庫\n執行命令: pip install opencc-python-reimplemented"
+            print(error_msg)
+            return (error_msg,)
+        
+        try:
+            if simp_to_trad:
+                # 簡體轉繁體
+                if self.s2t_converter is None:
+                    self.s2t_converter = opencc.OpenCC('s2t.json')
+                converted_text = self.s2t_converter.convert(input_text)
+            else:
+                # 繁體轉簡體
+                if self.t2s_converter is None:
+                    self.t2s_converter = opencc.OpenCC('t2s.json')
+                converted_text = self.t2s_converter.convert(input_text)
+            
+            return (converted_text,)
+            
+        except Exception as e:
+            error_msg = f"轉換失敗: {str(e)}"
+            print(error_msg)
+            return (error_msg,)
 
 
     
@@ -825,6 +1101,8 @@ NODE_CLASS_MAPPINGS = {
     "CeilDivide": CeilDivide,
     "LoadVideoPath": LoadVideoPath,
     "SaveVideoPath": SaveVideoPath,
+    "TimestampToLrcNode": TimestampToLrcNode,
+    "ChineseConverterNode": ChineseConverterNode,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -837,5 +1115,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CeilDivide": "CeilDivide",
     "LoadVideoPath": "LoadVideoPath",
     "SaveVideoPath": "SaveVideoPath",
+    "TimestampToLrcNode": "TimestampToLrcNode",
+    "ChineseConverterNode": "ChineseConverterNode",
 }
 
