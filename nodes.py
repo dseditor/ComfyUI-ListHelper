@@ -917,177 +917,144 @@ class SaveVideoPath:
             metadata=saved_metadata
         )
         
-        return (full_path,)
-        
-class TimestampToLrcNode:
+        return (full_path,)        
+            
+class FrameMatch:
     """
-    ComfyUI節點：將時間戳格式轉換為LRC歌詞格式
+    調整圖像序列到指定幀數的節點
+    如果目標幀數大於輸入幀數，會重複最後一幀來補齊
+    如果目標幀數小於輸入幀數，會截取前面的幀
     """
     
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input_text": ("STRING", {
-                    "multiline": True,
-                    "default": ""
+                "images": ("IMAGE",),  # 輸入圖像序列
+                "target_frames": ("INT", {
+                    "default": 100, 
+                    "min": 1, 
+                    "max": 10000, 
+                    "step": 1,
+                    "tooltip": "目標幀數"
+                }),
+            },
+            "optional": {
+                "fill_mode": (["repeat_last", "loop", "bounce"], {
+                    "default": "repeat_last",
+                    "tooltip": "填充模式：repeat_last=重複最後一幀，loop=循環播放，bounce=來回播放"
                 }),
             }
         }
     
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("lrc_output",)
-    FUNCTION = "convert_to_lrc"
-    CATEGORY = "text/processing"
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("images",)
+    FUNCTION = "match_frames"
+    CATEGORY = "ListHelper"
     
-    def convert_to_lrc(self, input_text):
+    def match_frames(self, images, target_frames, fill_mode="repeat_last"):
         """
-        將時間戳格式轉換為LRC格式
-        輸入格式: >> 0:00-0:04\n>> 文本內容
-        輸出格式: [00:00.00]文本內容
-        """
-        
-        lines = input_text.strip().split('\n')
-        lrc_lines = []
-        current_time = None
-        current_text = ""
-        
-        for line in lines:
-            line = line.strip()
-            
-            # 檢查是否為時間戳行 (格式: >> 0:00-0:04)
-            time_match = re.match(r'^>>\s*(\d+):(\d+)-(\d+):(\d+)$', line)
-            if time_match:
-                # 如果之前有累積的文本，先處理它
-                if current_time is not None and current_text.strip():
-                    lrc_lines.append(f"[{current_time}]{current_text.strip()}")
-                
-                # 解析開始時間
-                start_min = int(time_match.group(1))
-                start_sec = int(time_match.group(2))
-                current_time = f"{start_min:02d}:{start_sec:02d}.00"
-                current_text = ""
-                
-            # 檢查是否為文本行 (格式: >> 文本內容)
-            elif line.startswith('>> '):
-                text_content = line[3:].strip()  # 移除 ">> " 前綴
-                if text_content:  # 只添加非空文本
-                    if current_text:
-                        current_text += " " + text_content
-                    else:
-                        current_text = text_content
-            
-            # 處理空行或其他格式
-            elif line == '' or line == '>>':
-                # 空行保持當前狀態，不做處理
-                continue
-            else:
-                # 其他格式的行，嘗試作為文本處理
-                if line and current_time is not None:
-                    if current_text:
-                        current_text += " " + line
-                    else:
-                        current_text = line
-        
-        # 處理最後一段文本
-        if current_time is not None and current_text.strip():
-            lrc_lines.append(f"[{current_time}]{current_text.strip()}")
-        
-        # 合併結果
-        lrc_output = '\n'.join(lrc_lines)
-        
-        return (lrc_output,)
-
-try:
-    import opencc
-except ImportError:
-    print("請安裝opencc庫: pip install opencc-python-reimplemented")
-    opencc = None
-
-class ChineseConverterNode:
-    """
-    ComfyUI節點：中文簡繁轉換
-    使用opencc庫進行高質量轉換
-    布林開關控制：True=簡體轉繁體，False=繁體轉簡體
-    """
-    
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "input_text": ("STRING", {
-                    "multiline": True,
-                    "default": ""
-                }),
-                "simp_to_trad": ("BOOLEAN", {
-                    "default": True,
-                    "label_on": "簡體→繁體",
-                    "label_off": "繁體→簡體"
-                }),
-            }
-        }
-    
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("converted_text",)
-    FUNCTION = "convert_chinese"
-    CATEGORY = "text/processing"
-    
-    def __init__(self):
-        """初始化轉換器"""
-        if opencc is None:
-            self.s2t_converter = None
-            self.t2s_converter = None
-            print("錯誤：opencc庫未安裝，請執行: pip install opencc-python-reimplemented")
-        else:
-            try:
-                # 簡體轉繁體轉換器
-                self.s2t_converter = opencc.OpenCC('s2t.json')
-                # 繁體轉簡體轉換器  
-                self.t2s_converter = opencc.OpenCC('t2s.json')
-            except Exception as e:
-                print(f"opencc初始化失敗: {e}")
-                self.s2t_converter = None
-                self.t2s_converter = None
-    
-    def convert_chinese(self, input_text, simp_to_trad):
-        """
-        轉換中文文本
+        調整圖像序列到目標幀數
         
         Args:
-            input_text: 輸入文本
-            simp_to_trad: True=簡體轉繁體，False=繁體轉簡體
+            images: 輸入圖像張量 [N, H, W, C]
+            target_frames: 目標幀數
+            fill_mode: 填充模式
             
         Returns:
-            轉換後的文本
+            調整後的圖像序列
         """
+        import torch
         
-        if not input_text.strip():
-            return ("",)
+        if images is None or images.shape[0] == 0:
+            raise ValueError("輸入圖像序列不能為空")
         
-        # 檢查opencc是否可用
-        if opencc is None:
-            error_msg = "錯誤：請先安裝opencc庫\n執行命令: pip install opencc-python-reimplemented"
-            print(error_msg)
-            return (error_msg,)
+        current_frames = images.shape[0]
         
-        try:
-            if simp_to_trad:
-                # 簡體轉繁體
-                if self.s2t_converter is None:
-                    self.s2t_converter = opencc.OpenCC('s2t.json')
-                converted_text = self.s2t_converter.convert(input_text)
+        print(f"FrameMatch: 當前幀數 {current_frames} -> 目標幀數 {target_frames}")
+        
+        # 如果當前幀數等於目標幀數，直接返回
+        if current_frames == target_frames:
+            return (images,)
+        
+        # 如果目標幀數小於當前幀數，截取前面的幀
+        elif target_frames < current_frames:
+            matched_images = images[:target_frames]
+            print(f"FrameMatch: 截取前 {target_frames} 幀")
+            
+        # 如果目標幀數大於當前幀數，需要填充
+        else:
+            additional_frames_needed = target_frames - current_frames
+            
+            if fill_mode == "repeat_last":
+                # 重複最後一幀
+                last_frame = images[-1:].clone()  # 保持維度 [1, H, W, C]
+                repeated_frames = last_frame.repeat(additional_frames_needed, 1, 1, 1)
+                matched_images = torch.cat([images, repeated_frames], dim=0)
+                print(f"FrameMatch: 重複最後一幀 {additional_frames_needed} 次")
+                
+            elif fill_mode == "loop":
+                # 循環播放整個序列
+                loops_needed = (additional_frames_needed + current_frames - 1) // current_frames
+                looped_images = images.repeat(loops_needed + 1, 1, 1, 1)
+                matched_images = looped_images[:target_frames]
+                print(f"FrameMatch: 循環播放 {loops_needed} 次")
+                
+            elif fill_mode == "bounce":
+                # 來回播放（正向 -> 反向 -> 正向...）
+                additional_images = []
+                remaining_frames = additional_frames_needed
+                forward = True
+                
+                while remaining_frames > 0:
+                    if forward:
+                        # 正向播放（跳過第一幀以避免重複）
+                        frames_to_add = min(remaining_frames, current_frames - 1)
+                        if frames_to_add > 0:
+                            additional_images.append(images[1:frames_to_add + 1])
+                            remaining_frames -= frames_to_add
+                    else:
+                        # 反向播放（跳過最後一幀以避免重複）
+                        frames_to_add = min(remaining_frames, current_frames - 1)
+                        if frames_to_add > 0:
+                            # 反轉順序，並跳過最後一幀
+                            reversed_frames = torch.flip(images[:-1], dims=[0])
+                            additional_images.append(reversed_frames[:frames_to_add])
+                            remaining_frames -= frames_to_add
+                    
+                    forward = not forward
+                
+                if additional_images:
+                    bounced_frames = torch.cat(additional_images, dim=0)
+                    matched_images = torch.cat([images, bounced_frames], dim=0)
+                else:
+                    matched_images = images
+                
+                print(f"FrameMatch: 來回播放模式，添加 {additional_frames_needed} 幀")
+            
             else:
-                # 繁體轉簡體
-                if self.t2s_converter is None:
-                    self.t2s_converter = opencc.OpenCC('t2s.json')
-                converted_text = self.t2s_converter.convert(input_text)
-            
-            return (converted_text,)
-            
-        except Exception as e:
-            error_msg = f"轉換失敗: {str(e)}"
-            print(error_msg)
-            return (error_msg,)
+                # 預設使用重複最後一幀
+                last_frame = images[-1:].clone()
+                repeated_frames = last_frame.repeat(additional_frames_needed, 1, 1, 1)
+                matched_images = torch.cat([images, repeated_frames], dim=0)
+                print(f"FrameMatch: 使用預設模式，重複最後一幀 {additional_frames_needed} 次")
+        
+        # 確保輸出幀數正確
+        final_frames = matched_images.shape[0]
+        if final_frames != target_frames:
+            # 如果還是不匹配，進行最終調整
+            if final_frames > target_frames:
+                matched_images = matched_images[:target_frames]
+            else:
+                # 補齊差異
+                diff = target_frames - final_frames
+                last_frame = matched_images[-1:].clone()
+                extra_frames = last_frame.repeat(diff, 1, 1, 1)
+                matched_images = torch.cat([matched_images, extra_frames], dim=0)
+        
+        print(f"FrameMatch: 完成，最終幀數 {matched_images.shape[0]}")
+        
+        return (matched_images,)
 
 
     
@@ -1101,8 +1068,7 @@ NODE_CLASS_MAPPINGS = {
     "CeilDivide": CeilDivide,
     "LoadVideoPath": LoadVideoPath,
     "SaveVideoPath": SaveVideoPath,
-    "TimestampToLrcNode": TimestampToLrcNode,
-    "ChineseConverterNode": ChineseConverterNode,
+    "FrameMatch": FrameMatch,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1115,7 +1081,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CeilDivide": "CeilDivide",
     "LoadVideoPath": "LoadVideoPath",
     "SaveVideoPath": "SaveVideoPath",
-    "TimestampToLrcNode": "TimestampToLrcNode",
-    "ChineseConverterNode": "ChineseConverterNode",
+    "FrameMatch": "FrameMatch",
 }
 
