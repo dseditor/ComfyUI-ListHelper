@@ -15,6 +15,8 @@ The **ListHelper** collection is a comprehensive set of custom nodes for ComfyUI
 1. [AudioListCombine](#audiolistcombine-node)
 2. [NumberListGenerator](#numberlistgenerator-node)
 3. [PromptSplitByDelimiter](#promptsplitbydelimiter-node)
+4. OpenRouterLLM (For Free Bananas)
+![Demo](Readme/demo6.jpg)
 
 ---
 
