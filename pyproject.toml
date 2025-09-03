@@ -1,7 +1,7 @@
 [project]
 name = "Listhelper"
 description = "The ListHelper collection is a comprehensive set of custom nodes for ComfyUI that provides powerful list manipulation capabilities. This collection includes audio processing, text splitting, and number generation tools for enhanced workflow automation.And OpenRouter API Function"
-version = "1.0.4"
+version = "1.0.5"
 license = {file = "LICENSE"}
 dependencies = ["regex"]
 
