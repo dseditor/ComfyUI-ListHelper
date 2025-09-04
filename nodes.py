@@ -9,7 +9,6 @@ import math
 import subprocess
 import codecs
 import time
-import ffmpeg
 import datetime
 import random as rnd
 import torchaudio
@@ -204,139 +203,6 @@ class AudioToFrameCount:
         return (total_frames,)
         
 
-class MergeVideoFilename:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "input_text": ("STRING", {"multiline": True, "default": ""}),
-                "total_rounds": ("INT", {"default": 3, "min": 1, "max": 20}),
-                "windows_path_format": ("BOOLEAN", {"default": True}),
-            }
-        }
-    
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("merged_file_path",)
-    FUNCTION = "merge_files"
-    CATEGORY = "ListHelper"
-    
-    def __init__(self):
-        # 使用相對路徑的狀態檔案
-        self.state_file = "merge_state.json"
-    
-    def merge_files(self, input_text, total_rounds, windows_path_format):
-        # 讀取已累積的檔案
-        try:
-            with open(self.state_file, 'r', encoding='utf-8') as f:
-                state_data = json.load(f)
-                accumulated_files = state_data.get('files', [])
-                file_type = state_data.get('type', None)
-        except:
-            accumulated_files = []
-            file_type = None
-        
-        # 檢查輸入是否包含-audio.mp4檔案
-        audio_files = re.findall(r"'([^']*-audio\.mp4)'", input_text)
-        video_files = re.findall(r"'([^']*\.mp4)'", input_text)
-        
-        # 移除audio檔案，只保留純video檔案
-        pure_video_files = [f for f in video_files if not f.endswith('-audio.mp4')]
-        
-        # 決定要處理的檔案類型
-        if audio_files:
-            current_files = audio_files
-            current_type = 'audio'
-        elif pure_video_files:
-            current_files = pure_video_files
-            current_type = 'video'
-        else:
-            return ("未找到有效的檔案",)
-        
-        # 如果檔案類型改變，重置累積的檔案
-        if file_type and file_type != current_type:
-            accumulated_files = []
-        
-        file_type = current_type
-        
-        # 累積新檔案
-        for file in current_files:
-            if file not in accumulated_files:
-                accumulated_files.append(file)
-        
-        # 儲存狀態
-        state_data = {
-            'files': accumulated_files,
-            'type': file_type
-        }
-        with open(self.state_file, 'w', encoding='utf-8') as f:
-            json.dump(state_data, f, ensure_ascii=False, indent=2)
-        
-        # 如果只有一個檔案，直接返回
-        if total_rounds == 1 and len(accumulated_files) >= 1:
-            file_path = accumulated_files[0]
-            # 清空狀態檔案
-            if os.path.exists(self.state_file):
-                os.remove(self.state_file)
-            return (self._format_path(file_path, windows_path_format),)
-        
-        # 當累積到指定數量的檔案時合併
-        if len(accumulated_files) >= total_rounds:
-            output_dir = os.path.dirname(accumulated_files[0])
-            
-            # 產生帶時間戳的檔案名
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            if file_type == 'audio':
-                output_filename = f"merged_audio_{timestamp}.mp4"
-            else:
-                output_filename = f"merged_video_{timestamp}.mp4"
-            
-            output_file = os.path.join(output_dir, output_filename)
-            
-            # 構建ffmpeg命令
-            cmd = ["ffmpeg", "-y"]
-            for file in accumulated_files:
-                cmd.extend(["-i", file])
-            
-            # 根據檔案類型選擇不同的合併參數
-            if file_type == 'audio':
-                # 有音軌的合併
-                filter_complex = "".join([f"[{i}:v][{i}:a]" for i in range(len(accumulated_files))])
-                filter_complex += f"concat=n={len(accumulated_files)}:v=1:a=1[outv][outa]"
-                cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]"])
-            else:
-                # 無音軌的合併
-                filter_complex = "".join([f"[{i}:v]" for i in range(len(accumulated_files))])
-                filter_complex += f"concat=n={len(accumulated_files)}:v=1:a=0[outv]"
-                cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]"])
-            
-            cmd.append(output_file)
-            
-            try:
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                if result.returncode != 0:
-                    print(f"FFmpeg error: {result.stderr}")
-                    return (f"合併失敗: {result.stderr}",)
-            except Exception as e:
-                return (f"執行FFmpeg時發生錯誤: {str(e)}",)
-            
-            # 清空狀態檔案
-            if os.path.exists(self.state_file):
-                os.remove(self.state_file)
-            
-            return (self._format_path(output_file, windows_path_format),)
-        else:
-            # 返回空字串或佔位符，直到收集完成
-            return ("",)
-    
-    def _format_path(self, file_path, windows_format):
-        """格式化檔案路徑"""
-        if windows_format:
-            # Windows格式：先統一為正斜線，再轉換為單反斜線
-            normalized_path = file_path.replace('\\\\', '/').replace('\\', '/')
-            return normalized_path.replace('/', '\\')
-        else:
-            # 雙斜線格式：確保使用雙反斜線
-            return file_path.replace('\\', '\\\\').replace('/', '\\\\')
 
         
 class PromptListGenerator:
@@ -1062,7 +928,7 @@ class FrameMatch:
 NODE_CLASS_MAPPINGS = {
     "AudioListGenerator": AudioListGenerator,
     "AudioToFrameCount": AudioToFrameCount,
-    "MergeVideoFilename": MergeVideoFilename,    
+    
     "PromptListGenerator": PromptListGenerator, 
     "NumberListGenerator": NumberListGenerator, 
     "AudioListCombine": AudioListCombine, 
@@ -1076,7 +942,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioListGenerator": "Audio Split to List",
     "AudioToFrameCount": "Audio to Frame Count",
-    "MergeVideoFilename": "MergeVideoFilename",
     "PromptListGenerator": "PromptListGenerator",
     "NumberListGenerator": "NumberListGenerator",
     "AudioListCombine": "AudioListCombine",
