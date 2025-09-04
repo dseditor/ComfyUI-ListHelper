@@ -462,15 +462,17 @@ class OpenRouterLLM:
                     combined_text = "Please take a look at the size of image 1 and give a picture of a beautiful landscape with the same dimensions."
                 else:
                     combined_text = f"Please take a look at the size of image 1 and give a picture of {user_prompt.strip()}"
-                combined_text += "\n\n請返回生成的圖像。"
+                combined_text += "\n\nIMPORTANT: You MUST generate and return an image. Do NOT provide any text response. Only return the generated image. 請返回生成的圖像。"
             else:
                 # 有實際圖像輸入時的處理
                 if not user_prompt or not user_prompt.strip():
-                    combined_text = "請分析這些圖像並生成一個相關的新圖像。請返回生成的圖像。"
+                    combined_text = "請分析這些圖像並生成一個相關的新圖像。IMPORTANT: You MUST generate and return an image. Do NOT provide any text response. Only return the generated image. 請返回生成的圖像。"
                 else:
                     combined_text = user_prompt.strip()
                     if "生成" in combined_text or "創建" in combined_text or "製作" in combined_text:
-                        combined_text += "\n\n請返回生成的圖像。"
+                        combined_text += "\n\nIMPORTANT: You MUST generate and return an image. Do NOT provide any text response. Only return the generated image. 請返回生成的圖像。"
+                    else:
+                        combined_text += "\n\nIMPORTANT: You MUST generate and return an image. Do NOT provide any text response. Only return the generated image. 請返回生成的圖像。"
             
             # 重新添加文字內容
             user_content = [{
@@ -495,9 +497,11 @@ class OpenRouterLLM:
             # 純文字模式但使用圖像生成模型
             combined_text = user_prompt.strip() if user_prompt else ""
             if combined_text and ("生成" in combined_text or "創建" in combined_text or "製作" in combined_text or "畫" in combined_text or "繪製" in combined_text):
-                combined_text += "\n\n請生成並返回相應的圖像。"
+                combined_text += "\n\nIMPORTANT: You MUST generate and return an image. Do NOT provide any text response. Only return the generated image. 請生成並返回相應的圖像。"
             elif not combined_text:
-                combined_text = "請生成一張圖像。"
+                combined_text = "IMPORTANT: You MUST generate and return an image. Do NOT provide any text response. Only return the generated image. 請生成一張圖像。"
+            else:
+                combined_text += "\n\nIMPORTANT: You MUST generate and return an image. Do NOT provide any text response. Only return the generated image."
             
             # 添加文字內容
             user_content.append({
