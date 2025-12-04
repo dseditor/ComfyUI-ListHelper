@@ -22,12 +22,26 @@ class QwenGPUInference:
 
     @classmethod
     def _get_safetensors_files(cls):
-        """Get all safetensors files from text_encoders folder"""
+        """Get all safetensors files from text_encoders and clip folders"""
         safetensors_files = []
 
+        # Search in text_encoders folder
         try:
             text_encoder_paths = folder_paths.get_folder_paths("text_encoders")
             for path in text_encoder_paths:
+                if os.path.exists(path):
+                    for file in os.listdir(path):
+                        if file.lower().endswith('.safetensors'):
+                            full_path = os.path.join(path, file)
+                            if full_path not in safetensors_files:
+                                safetensors_files.append(full_path)
+        except:
+            pass
+
+        # Search in clip folder
+        try:
+            clip_paths = folder_paths.get_folder_paths("clip")
+            for path in clip_paths:
                 if os.path.exists(path):
                     for file in os.listdir(path):
                         if file.lower().endswith('.safetensors'):
@@ -444,19 +458,19 @@ class QwenGPUInference:
         # Auto-find Qwen model
         model_path = self._find_qwen_model()
         if model_path is None:
-            error_msg = "Error: Qwen model file not found.\nPlease place the correct model file (e.g., qwen_3_4b.safetensors) in ComfyUI's models/text_encoders folder."
+            error_msg = "Error: Qwen model file not found.\nPlease place the correct model file (e.g., qwen_3_4b.safetensors) in ComfyUI's models/text_encoders or models/clip folder."
             print(error_msg)
             return (error_msg,)
 
         if not os.path.exists(model_path):
-            error_msg = f"Error: Model file does not exist: {model_path}\nPlease place the correct model file in the text_encoders folder."
+            error_msg = f"Error: Model file does not exist: {model_path}\nPlease place the correct model file in the text_encoders or clip folder."
             print(error_msg)
             return (error_msg,)
 
         # Use fixed repo_id
         repo_id = "Qwen/Qwen3-4B"
         if not self._load_model(model_path, repo_id):
-            error_msg = "Error: Model loading failed. Please check the model file and ensure it's properly placed in the text_encoders folder."
+            error_msg = "Error: Model loading failed. Please check the model file and ensure it's properly placed in the text_encoders or clip folder."
             print(error_msg)
             return (error_msg,)
 

@@ -949,6 +949,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "LoadVideoPath": "LoadVideoPath",
     "SaveVideoPath": "SaveVideoPath",
     "FrameMatch": "FrameMatch",
-    "QwenGPUInference": "Qwen GPU Inference",
+    "QwenGPUInference": "Qwen_TE_LLM",
 }
 
