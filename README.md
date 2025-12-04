@@ -15,7 +15,8 @@ The **ListHelper** collection is a comprehensive set of custom nodes for ComfyUI
 1. [AudioListCombine](#audiolistcombine-node)
 2. [NumberListGenerator](#numberlistgenerator-node)
 3. [PromptSplitByDelimiter](#promptsplitbydelimiter-node)
-4. OpenRouterLLM (For Free Bananas)
+4. [QwenGPUInference](#qwengpuinference-node) - AI Photo Prompt Optimizer
+5. OpenRouterLLM (For Free Bananas)
 ![Demo](Readme/demo6.jpg)
 
 ---
@@ -250,6 +251,158 @@ Output: ["Chapter3", "Chapter1"] (randomized)
 
 ---
 
+## QwenGPUInference Node
+
+### Overview
+
+The **QwenGPUInference** node is an AI-powered photo prompt optimizer that transforms simple scene descriptions into detailed, professional photography prompts. It uses the Qwen3-4B language model with intelligent GPU memory management and CPU offload support for seamless integration with ComfyUI.
+
+### Features
+
+- **Automatic Model Detection**: Finds qwen_3_4b.safetensors in text_encoders folder
+- **Smart Memory Management**: Automatically detects GPU memory and chooses optimal loading strategy
+- **CPU Offload Support**: Works alongside other ComfyUI models without memory conflicts
+- **Professional Prompt Generation**: Transforms simple descriptions into detailed photography prompts
+- **Bilingual Support**: Handles both Chinese and English inputs
+- **Automatic Config Download**: Downloads required model configuration files from HuggingFace
+- **Think Tag Removal**: Automatically removes model reasoning process from output
+
+### Requirements
+
+- **GPU**: NVIDIA GPU with CUDA support (12GB+ recommended, works with less using CPU offload)
+- **Model File**: qwen_3_4b.safetensors in `ComfyUI/models/text_encoders/`
+- **Python Packages**: transformers, safetensors, torch
+
+### Model Setup
+
+1. Download `qwen_3_4b.safetensors` from [Hugging Face](https://huggingface.co/Qwen/Qwen3-4B)
+2. Place the file in `ComfyUI/models/text_encoders/`
+3. First run will automatically download configuration files
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `user_prompt` | STRING | "一個女孩在咖啡廳" | Simple scene description |
+| `system_prompt` | STRING | (see below) | Professional photography optimization prompt |
+| `max_new_tokens` | INT | 2048 | Maximum length of generated prompt |
+| `temperature` | FLOAT | 0.7 | Creativity level (0.0-2.0) |
+| `do_sample` | BOOLEAN | True | Enable sampling for varied outputs |
+| `top_p` | FLOAT | 0.9 | Nucleus sampling threshold |
+| `top_k` | INT | 50 | Top-k sampling parameter |
+
+### Default System Prompt
+
+The node uses a specialized system prompt optimized for generating professional photography descriptions:
+
+```
+You are a professional photography prompt optimization expert. Transform simple scene descriptions into detailed, professional photography prompts.
+
+Include these elements:
+1. Subject Description: Detailed main subject (person, object, scene)
+2. Environment Details: Surrounding environment, background, atmosphere
+3. Lighting Effects: Light type, direction, contrast, color temperature
+4. Camera Settings: Perspective, depth of field, focal length
+5. Composition: Layout, foreground/midground/background
+6. Color Atmosphere: Main colors, color matching, saturation
+7. Texture Details: Materials, textures, detail expression
+8. Mood Atmosphere: Overall atmosphere, emotional expression
+
+Output Format:
+- Use English for professional photography terms
+- Separate elements with commas
+- Ensure descriptions are specific and visual
+- Length: 150-300 English words
+```
+
+### Loading Strategies
+
+The node automatically selects the best loading strategy based on available GPU memory:
+
+#### Strategy 1: Full GPU Loading
+- **Condition**: ≥7.5GB available GPU memory
+- **Performance**: ~26-30 tokens/second
+- **Use Case**: Standalone usage or minimal ComfyUI memory usage
+
+#### Strategy 2: CPU Offload
+- **Condition**: <7.5GB available GPU memory
+- **Performance**: ~1-2 tokens/second (slower but reliable)
+- **Use Case**: When ComfyUI has loaded large models
+- **Advantage**: No memory conflicts, coexists with other models
+
+#### Strategy 3: CPU Mode
+- **Condition**: No CUDA available
+- **Use Case**: CPU-only environments
+
+### Output
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `text` | STRING | Detailed professional photography prompt |
+
+### Usage Examples
+
+#### Example 1: Simple Chinese Input
+```
+Input: "一個女孩在咖啡廳"
+Output: "A young woman sitting by the window in a cozy coffee shop, warm afternoon sunlight streaming through large glass windows creating soft shadows, wearing casual outfit, holding a cup of coffee, wooden table with laptop and notebook, blurred background with other customers, shallow depth of field, bokeh effect, warm color temperature, golden hour lighting..."
+```
+
+#### Example 2: English Input
+```
+Input: "a cat sitting on a windowsill"
+Output: "A calico cat sitting on a sunlit windowsill, its long fur catching golden-hour light from the right, creating soft shadows across its face and body, wearing a quiet expression of peaceful solitude, surrounded by indoor plants and a wooden bookshelf in the background, shallow depth of field with bokeh-like blur..."
+```
+
+### Memory Management
+
+The node includes intelligent memory management:
+
+1. **Pre-Load Check**: Checks GPU memory before loading
+2. **Automatic Cleanup**: Clears CUDA cache if needed
+3. **Dynamic Strategy**: Chooses loading strategy based on available memory
+4. **Device Distribution**: Shows how model layers are distributed across GPU/CPU
+5. **Clear Error Messages**: Provides detailed error information and solutions
+
+### Performance Considerations
+
+- **First Load**: 7-130 seconds depending on hardware and memory
+- **Subsequent Loads**: Model stays in memory, near-instant
+- **Full GPU**: Fast inference (~26-30 tokens/second)
+- **CPU Offload**: Slower inference (~1-2 tokens/second) but prevents crashes
+- **Memory Usage**: ~7.5GB GPU memory for full GPU mode
+
+### Troubleshooting
+
+**Model not found**
+- Ensure `qwen_3_4b.safetensors` is in `models/text_encoders/`
+- Check filename matches exactly (case-sensitive)
+
+**Out of memory**
+- Node will automatically use CPU offload
+- If still failing, close other GPU applications
+- Consider restarting ComfyUI to free memory
+
+**Slow inference**
+- Using CPU offload (expected behavior with low GPU memory)
+- For faster inference, free up GPU memory
+
+**Config download fails**
+- Check internet connection
+- Manually download from Hugging Face if needed
+
+### Testing
+
+A test script is provided: `test_qwen_node.py`
+
+```bash
+python test_qwen_node.py
+```
+
+This tests model loading, memory management, and inference capabilities.
+
+---
+
 ## 中文版本
 
 ### 概述
@@ -261,9 +414,10 @@ Output: ["Chapter3", "Chapter1"] (randomized)
 1. [AudioListCombine 音頻列表合併](#audiolistcombine-音頻列表合併節點)
 2. [NumberListGenerator 數字列表生成器](#numberlistgenerator-數字列表生成節點)
 3. [PromptSplitByDelimiter 提示分割器](#promptsplitbydelimiter-提示分割節點)
-4. [AudioToFrameCount](#AudioToFrameCount)
-5. [AudioSplitToList](#AudioSplitToList)
-6. [CeilDivide](#CeilDivide)
+4. [QwenGPUInference AI照片提示詞優化器](#qwengpuinference-ai照片提示詞優化器)
+5. [AudioToFrameCount](#AudioToFrameCount)
+6. [AudioSplitToList](#AudioSplitToList)
+7. [CeilDivide](#CeilDivide)
 
 ---
 
@@ -482,6 +636,136 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 - **內容管理**：處理支援中日韓的多語言內容
 - **批次處理**：為下游處理節點生成列表
 - **隨機抽樣**：創建隨機化的內容選擇
+
+---
+
+## QwenGPUInference AI照片提示詞優化器
+
+### 概述
+
+**QwenGPUInference** 節點是一個 AI 驅動的照片提示詞優化器，將簡單的場景描述轉換為詳細、專業的攝影提示詞。使用 Qwen3-4B 語言模型，具備智能 GPU 記憶體管理和 CPU Offload 支援，可與 ComfyUI 無縫整合。
+
+### 功能特色
+
+- **自動模型偵測**：自動在 text_encoders 資料夾中尋找 qwen_3_4b.safetensors
+- **智能記憶體管理**：自動檢測 GPU 記憶體並選擇最佳載入策略
+- **CPU Offload 支援**：可與其他 ComfyUI 模型共存，無記憶體衝突
+- **專業提示詞生成**：將簡單描述轉換為詳細的攝影提示詞
+- **雙語支援**：處理中文和英文輸入
+- **自動配置下載**：從 HuggingFace 自動下載所需的模型配置檔案
+- **思考標籤移除**：自動移除模型推理過程
+
+### 需求
+
+- **GPU**：支援 CUDA 的 NVIDIA GPU（建議 12GB+，記憶體較少時使用 CPU offload）
+- **模型檔案**：qwen_3_4b.safetensors 放在 `ComfyUI/models/text_encoders/`
+- **Python 套件**：transformers、safetensors、torch
+
+### 模型設置
+
+1. 從 [Hugging Face](https://huggingface.co/Qwen/Qwen3-4B) 下載 `qwen_3_4b.safetensors`
+2. 將檔案放在 `ComfyUI/models/text_encoders/`
+3. 首次執行會自動下載配置檔案
+
+### 參數說明
+
+| 參數 | 類型 | 預設值 | 說明 |
+|------|------|--------|------|
+| `user_prompt` | STRING | "一個女孩在咖啡廳" | 簡單場景描述 |
+| `system_prompt` | STRING | (見下方) | 專業攝影優化提示詞 |
+| `max_new_tokens` | INT | 2048 | 生成提示詞的最大長度 |
+| `temperature` | FLOAT | 0.7 | 創意程度 (0.0-2.0) |
+| `do_sample` | BOOLEAN | True | 啟用採樣以產生變化輸出 |
+| `top_p` | FLOAT | 0.9 | Nucleus 採樣閾值 |
+| `top_k` | INT | 50 | Top-k 採樣參數 |
+
+### 載入策略
+
+節點會根據可用 GPU 記憶體自動選擇最佳載入策略：
+
+#### 策略 1：完全 GPU 載入
+- **條件**：可用 GPU 記憶體 ≥7.5GB
+- **效能**：~26-30 tokens/秒
+- **適用**：獨立使用或 ComfyUI 記憶體佔用較少時
+
+#### 策略 2：CPU Offload
+- **條件**：可用 GPU 記憶體 <7.5GB
+- **效能**：~1-2 tokens/秒（較慢但可靠）
+- **適用**：ComfyUI 已載入大型模型時
+- **優點**：無記憶體衝突，可與其他模型共存
+
+#### 策略 3：CPU 模式
+- **條件**：無 CUDA 可用
+- **適用**：純 CPU 環境
+
+### 輸出
+
+| 輸出 | 類型 | 說明 |
+|------|------|------|
+| `text` | STRING | 詳細的專業攝影提示詞 |
+
+### 使用範例
+
+#### 範例 1：簡單中文輸入
+```
+輸入: "一個女孩在咖啡廳"
+輸出: "A young woman sitting by the window in a cozy coffee shop, warm afternoon sunlight streaming through large glass windows creating soft shadows, wearing casual outfit, holding a cup of coffee, wooden table with laptop and notebook, blurred background with other customers, shallow depth of field, bokeh effect, warm color temperature, golden hour lighting..."
+```
+
+#### 範例 2：英文輸入
+```
+輸入: "a cat sitting on a windowsill"
+輸出: "A calico cat sitting on a sunlit windowsill, its long fur catching golden-hour light from the right, creating soft shadows across its face and body, wearing a quiet expression of peaceful solitude, surrounded by indoor plants and a wooden bookshelf in the background, shallow depth of field with bokeh-like blur..."
+```
+
+### 記憶體管理
+
+節點包含智能記憶體管理：
+
+1. **載入前檢查**：載入前檢查 GPU 記憶體
+2. **自動清理**：需要時清理 CUDA 快取
+3. **動態策略**：根據可用記憶體選擇載入策略
+4. **設備分佈**：顯示模型層在 GPU/CPU 的分佈情況
+5. **清楚錯誤訊息**：提供詳細的錯誤資訊和解決方案
+
+### 效能考量
+
+- **首次載入**：7-130 秒（取決於硬體和記憶體）
+- **後續載入**：模型保留在記憶體中，幾乎即時
+- **完全 GPU**：快速推理（~26-30 tokens/秒）
+- **CPU Offload**：較慢推理（~1-2 tokens/秒）但防止崩潰
+- **記憶體使用**：完全 GPU 模式約 7.5GB GPU 記憶體
+
+### 疑難排解
+
+**找不到模型**
+- 確保 `qwen_3_4b.safetensors` 在 `models/text_encoders/`
+- 檢查檔案名稱完全符合（區分大小寫）
+
+**記憶體不足**
+- 節點會自動使用 CPU offload
+- 若仍失敗，關閉其他 GPU 應用程式
+- 考慮重啟 ComfyUI 以釋放記憶體
+
+**推理速度慢**
+- 正在使用 CPU offload（低 GPU 記憶體時的預期行為）
+- 若要更快推理，釋放 GPU 記憶體
+
+**配置下載失敗**
+- 檢查網路連線
+- 必要時從 Hugging Face 手動下載
+
+### 測試
+
+提供測試腳本：`test_qwen_node.py`
+
+```bash
+python test_qwen_node.py
+```
+
+此腳本測試模型載入、記憶體管理和推理能力。
+
+---
 
 ### Performance Considerations / 性能考慮
 - **Memory Usage**: Large audio files and long text strings may require significant RAM

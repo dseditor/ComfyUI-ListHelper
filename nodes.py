@@ -24,6 +24,8 @@ from typing import List, Dict, Any, Tuple
 from random import Random
 from datetime import datetime
 from .openrouter_llm import OpenRouterLLM
+from .openai_helper import OpenAIHelper
+from .qwen_inference import QwenGPUInference
 
 class AudioListGenerator:
     @classmethod
@@ -928,15 +930,17 @@ class FrameMatch:
 NODE_CLASS_MAPPINGS = {
     "AudioListGenerator": AudioListGenerator,
     "AudioToFrameCount": AudioToFrameCount,
-    
-    "PromptListGenerator": PromptListGenerator, 
-    "NumberListGenerator": NumberListGenerator, 
-    "AudioListCombine": AudioListCombine, 
+
+    "PromptListGenerator": PromptListGenerator,
+    "NumberListGenerator": NumberListGenerator,
+    "AudioListCombine": AudioListCombine,
     "CeilDivide": CeilDivide,
     "LoadVideoPath": LoadVideoPath,
     "SaveVideoPath": SaveVideoPath,
     "FrameMatch": FrameMatch,
     "OpenRouterLLM": OpenRouterLLM,
+    "OpenAIHelper": OpenAIHelper,
+    "QwenGPUInference": QwenGPUInference,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -950,5 +954,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SaveVideoPath": "SaveVideoPath",
     "FrameMatch": "FrameMatch",
     "OpenRouterLLM": "OpenRouter LLM",
+    "OpenAIHelper": "OpenAI Helper",
+    "QwenGPUInference": "Qwen GPU Inference",
 }
 
