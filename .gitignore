@@ -1,0 +1,29 @@
+# Test files
+test_*.py
+*_test.py
+
+# Test markdown files (except README.md)
+*.md
+!README.md
+
+# Config files
+openaimodel.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Prompt directory
+Prompt/
+
+# Claude AI directory
+.claude/
