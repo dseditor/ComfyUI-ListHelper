@@ -15,9 +15,7 @@ The **ListHelper** collection is a comprehensive set of custom nodes for ComfyUI
 1. [AudioListCombine](#audiolistcombine-node)
 2. [NumberListGenerator](#numberlistgenerator-node)
 3. [PromptSplitByDelimiter](#promptsplitbydelimiter-node)
-4. [QwenGPUInference](#qwengpuinference-node) - AI Photo Prompt Optimizer
-5. OpenRouterLLM (For Free Bananas)
-![Demo](Readme/demo6.jpg)
+4. [Qwen_TE_LLM](#qwen-node) - AI Photo Prompt Optimizer
 
 ---
 
@@ -251,11 +249,11 @@ Output: ["Chapter3", "Chapter1"] (randomized)
 
 ---
 
-## QwenGPUInference Node
+## Qwen_TE_LLM Node
 
 ### Overview
 
-The **QwenGPUInference** node is an AI-powered text generation node that uses the Qwen3-4B language model with intelligent GPU memory management and CPU offload support for seamless integration with ComfyUI. It can transform simple descriptions into detailed, professional prompts using customizable templates.
+The **Qwen_TE_LLM** node is an AI-powered text generation node that uses the Qwen3-4B language model with intelligent GPU memory management and CPU offload support for seamless integration with ComfyUI. It can transform simple descriptions into detailed, professional prompts using customizable templates.
 
 ### Features
 
@@ -406,7 +404,7 @@ This tests model loading, memory management, and inference capabilities.
 1. [AudioListCombine 音頻列表合併](#audiolistcombine-音頻列表合併節點)
 2. [NumberListGenerator 數字列表生成器](#numberlistgenerator-數字列表生成節點)
 3. [PromptSplitByDelimiter 提示分割器](#promptsplitbydelimiter-提示分割節點)
-4. [QwenGPUInference AI照片提示詞優化器](#qwengpuinference-ai照片提示詞優化器)
+4. [Qwen_TE_LLM AI照片提示詞優化器](#Qwen_TE_LLM-ai照片提示詞優化器)
 5. [AudioToFrameCount](#AudioToFrameCount)
 6. [AudioSplitToList](#AudioSplitToList)
 7. [CeilDivide](#CeilDivide)
@@ -631,11 +629,11 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 
 ---
 
-## QwenGPUInference AI照片提示詞優化器
+## Qwen_TE_LLM AI照片提示詞優化器
 
 ### 概述
 
-**QwenGPUInference** 節點是一個 AI 驅動的文本生成節點，使用 Qwen3-4B 語言模型，具備智能 GPU 記憶體管理和 CPU Offload 支援，可與 ComfyUI 無縫整合。可使用自訂模板將簡單描述轉換為詳細、專業的提示詞。
+**Qwen_TE_LLM** 節點是一個 AI 驅動的文本生成節點，使用 Qwen3-4B 語言模型，具備智能 GPU 記憶體管理和 CPU Offload 支援，可與 ComfyUI 無縫整合。可使用自訂模板將簡單描述轉換為詳細、專業的提示詞。
 
 ### 功能特色
 
