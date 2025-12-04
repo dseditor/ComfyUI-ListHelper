@@ -19,7 +19,6 @@ class QwenGPUInference:
         self.tokenizer = None
         self.current_model_path = None
         self.config_dir = None
-        self.current_quantization = None
 
     @classmethod
     def _get_safetensors_files(cls):
@@ -126,13 +125,9 @@ class QwenGPUInference:
                 }),
             },
             "optional": {
-                "use_flash_attention": ("BOOLEAN", {
-                    "default": False,
-                    "tooltip": "Enable FlashAttention-2 (may not improve speed for small batch inference)"
-                }),
-                "use_quantization": ("BOOLEAN", {
-                    "default": False,
-                    "tooltip": "Enable INT8 quantization for lower memory usage (slower inference)"
+                "keep_model_loaded": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "WARNING: Set to False to unload model after generation. Required for low VRAM workflows."
                 }),
                 "do_sample": ("BOOLEAN", {
                     "default": True,
@@ -304,23 +299,12 @@ class QwenGPUInference:
             traceback.print_exc()
             return False
 
-    def _load_model(self, model_path: str, repo_id: str, use_quantization: bool = False, use_flash_attention: bool = False) -> bool:
-        """Load model and tokenizer (optimized v4 - with memory management, quantization, and FlashAttention support)"""
+    def _load_model(self, model_path: str, repo_id: str) -> bool:
+        """Load model and tokenizer (optimized v3 - with memory management)"""
         try:
-            # Check if model is already loaded with same settings
-            model_config_key = (model_path, use_quantization, use_flash_attention)
-            current_config_key = (self.current_model_path, self.current_quantization, getattr(self, 'current_flash_attention', None))
-
-            if self.model is not None and model_config_key == current_config_key:
-                print(f"Model already loaded: {os.path.basename(model_path)} (Quantized: {use_quantization}, FlashAttn: {use_flash_attention})")
+            if self.model is not None and self.current_model_path == model_path:
+                print(f"Model already loaded: {os.path.basename(model_path)}")
                 return True
-
-            # If any setting changed, need to reload
-            if self.model is not None and model_config_key != current_config_key:
-                print(f"Model settings changed, reloading...")
-                self.model = None
-                self.tokenizer = None
-                self._free_gpu_memory()
 
             try:
                 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
@@ -335,8 +319,8 @@ class QwenGPUInference:
 
             print(f"\nLoading model: {os.path.basename(model_path)}")
 
-            # Step 1: Check GPU memory (reduced threshold from 7.5GB to 6.0GB)
-            is_enough, memory_info = self._check_gpu_memory(required_gb=6.0)
+            # Step 1: Check GPU memory
+            is_enough, memory_info = self._check_gpu_memory(required_gb=7.5)
             print(memory_info)
 
             # Step 2: If insufficient memory, try to free up
@@ -345,7 +329,7 @@ class QwenGPUInference:
                 self._free_gpu_memory()
 
                 # Check again
-                is_enough, memory_info = self._check_gpu_memory(required_gb=6.0)
+                is_enough, memory_info = self._check_gpu_memory(required_gb=7.5)
                 print(memory_info)
 
                 if not is_enough:
@@ -372,12 +356,9 @@ class QwenGPUInference:
 
             # Determine loading strategy
             if torch.cuda.is_available():
-                # Use allocated memory instead of reserved for more accurate free memory calculation
-                free_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3 - torch.cuda.memory_allocated(0) / 1024**3
+                free_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3 - torch.cuda.memory_reserved(0) / 1024**3
 
-                # Lower threshold to 6.0GB - model actually needs ~7.5GB but can work with less free space
-                # This prevents unnecessary CPU offload when other models are loaded
-                if free_memory >= 6.0:
+                if free_memory >= 7.5:
                     # Sufficient memory: Full GPU loading
                     print(f"Strategy: Full GPU loading (Free: {free_memory:.2f}GB)")
                     max_memory_config = None
@@ -423,51 +404,9 @@ class QwenGPUInference:
                     "pretrained_model_name_or_path": temp_model_dir,
                     "trust_remote_code": True,
                     "device_map": "auto",
+                    "torch_dtype": dtype,
                     "low_cpu_mem_usage": True
                 }
-
-                # Add FlashAttention configuration (only if enabled by user)
-                if use_flash_attention:
-                    if torch.cuda.is_available():
-                        try:
-                            import flash_attn
-                            load_kwargs["attn_implementation"] = "flash_attention_2"
-                            print(f"FlashAttention: Enabled (v{flash_attn.__version__})")
-                        except ImportError:
-                            print("=" * 70)
-                            print("WARNING: FlashAttention-2 is enabled but 'flash-attn' is not installed")
-                            print("Install with: pip install flash-attn")
-                            print("Falling back to standard attention (no performance impact)")
-                            print("=" * 70)
-                    else:
-                        print("FlashAttention: Disabled (GPU required)")
-
-                # Add quantization configuration (only if enabled by user)
-                if use_quantization:
-                    if torch.cuda.is_available():
-                        try:
-                            from transformers import BitsAndBytesConfig
-
-                            quantization_config = BitsAndBytesConfig(
-                                load_in_8bit=True,
-                                llm_int8_threshold=6.0,
-                                llm_int8_has_fp16_weight=False,
-                            )
-                            load_kwargs["quantization_config"] = quantization_config
-                            print("Quantization: Enabled (INT8) - ~45% memory reduction")
-                        except ImportError:
-                            print("=" * 70)
-                            print("ERROR: Quantization is enabled but 'bitsandbytes' is not installed")
-                            print("Install with: pip install bitsandbytes")
-                            print("Falling back to FP16 (using more memory)")
-                            print("=" * 70)
-                            load_kwargs["torch_dtype"] = dtype
-                    else:
-                        print("Quantization: Disabled (GPU required)")
-                        load_kwargs["torch_dtype"] = dtype
-                else:
-                    # Default: use FP16 on GPU, FP32 on CPU
-                    load_kwargs["torch_dtype"] = dtype
 
                 if max_memory_config is not None:
                     load_kwargs["max_memory"] = max_memory_config
@@ -488,8 +427,6 @@ class QwenGPUInference:
                     pass
 
             self.current_model_path = model_path
-            self.current_quantization = use_quantization
-            self.current_flash_attention = use_flash_attention
             total_time = time.time() - overall_start
 
             if torch.cuda.is_available():
@@ -516,13 +453,12 @@ class QwenGPUInference:
         system_prompt: str,
         max_new_tokens: int,
         temperature: float,
-        use_flash_attention: bool = False,
-        use_quantization: bool = False,
+        keep_model_loaded: bool = True,
         do_sample: bool = True,
         top_p: float = 0.9,
         top_k: int = 50,
     ) -> Tuple[str]:
-        """Execute inference with optional FlashAttention-2 and INT8 quantization"""
+        """Execute inference"""
 
         # Auto-find Qwen model
         model_path = self._find_qwen_model()
@@ -538,7 +474,7 @@ class QwenGPUInference:
 
         # Use fixed repo_id
         repo_id = "Qwen/Qwen3-4B"
-        if not self._load_model(model_path, repo_id, use_quantization, use_flash_attention):
+        if not self._load_model(model_path, repo_id):
             error_msg = "Error: Model loading failed. Please check the model file and ensure it's properly placed in the text_encoders or clip folder."
             print(error_msg)
             return (error_msg,)
@@ -605,6 +541,16 @@ class QwenGPUInference:
 
             if torch.cuda.is_available():
                 print(f"GPU Memory: Used {torch.cuda.memory_allocated(0) / 1024**3:.2f}GB | Peak {torch.cuda.max_memory_allocated(0) / 1024**3:.2f}GB")
+
+            # Check if we should unload the model to free VRAM
+            if not keep_model_loaded:
+                print("Explicitly unloading model to free VRAM...")
+                del self.model
+                del self.tokenizer
+                self.model = None
+                self.tokenizer = None
+                self.current_model_path = None
+                self._free_gpu_memory()
 
             return (response,)
 
