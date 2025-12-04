@@ -255,65 +255,53 @@ Output: ["Chapter3", "Chapter1"] (randomized)
 
 ### Overview
 
-The **QwenGPUInference** node is an AI-powered photo prompt optimizer that transforms simple scene descriptions into detailed, professional photography prompts. It uses the Qwen3-4B language model with intelligent GPU memory management and CPU offload support for seamless integration with ComfyUI.
+The **QwenGPUInference** node is an AI-powered text generation node that uses the Qwen3-4B language model with intelligent GPU memory management and CPU offload support for seamless integration with ComfyUI. It can transform simple descriptions into detailed, professional prompts using customizable templates.
 
 ### Features
 
-- **Automatic Model Detection**: Finds qwen_3_4b.safetensors in text_encoders folder
+- **Automatic Model Detection**: Automatically finds Qwen safetensors files in `text_encoders` or `clip` folders
 - **Smart Memory Management**: Automatically detects GPU memory and chooses optimal loading strategy
-- **CPU Offload Support**: Works alongside other ComfyUI models without memory conflicts
-- **Professional Prompt Generation**: Transforms simple descriptions into detailed photography prompts
+  - Full GPU mode (≥7.5GB free): ~26-30 tokens/second
+  - CPU Offload mode (<7.5GB free): ~1-2 tokens/second, coexists with other models
+- **Template System**: Select from pre-made prompt templates in the `Prompt` folder or use custom prompts
 - **Bilingual Support**: Handles both Chinese and English inputs
 - **Automatic Config Download**: Downloads required model configuration files from HuggingFace
-- **Think Tag Removal**: Automatically removes model reasoning process from output
+- **Think Tag Removal**: Automatically removes `<think>...</think>` reasoning tags from output
 
 ### Requirements
 
 - **GPU**: NVIDIA GPU with CUDA support (12GB+ recommended, works with less using CPU offload)
-- **Model File**: qwen_3_4b.safetensors in `ComfyUI/models/text_encoders/`
+- **Model Files**:
+  - **Required**: `qwen_3_4b.safetensors` (or similar Qwen3-4B safetensors file)
+  - **Location**: Place in either `ComfyUI/models/text_encoders/` or `ComfyUI/models/clip/`
 - **Python Packages**: transformers, safetensors, torch
 
 ### Model Setup
 
-1. Download `qwen_3_4b.safetensors` from [Hugging Face](https://huggingface.co/Qwen/Qwen3-4B)
-2. Place the file in `ComfyUI/models/text_encoders/`
-3. First run will automatically download configuration files
+1. Download Qwen3-4B safetensors from [Hugging Face](https://huggingface.co/Qwen/Qwen3-4B)
+   - Recommended filename: `qwen_3_4b.safetensors`
+2. Place the file in `ComfyUI/models/text_encoders/` or `ComfyUI/models/clip/`
+3. First run will automatically download configuration files to a `_config` subfolder
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `user_prompt` | STRING | "一個女孩在咖啡廳" | Simple scene description |
-| `system_prompt` | STRING | (see below) | Professional photography optimization prompt |
-| `max_new_tokens` | INT | 2048 | Maximum length of generated prompt |
+| `user_prompt` | STRING | "A girl in a coffee shop" | Your input text/description |
+| `prompt_template` | COMBO | "Custom" | Select a template from the Prompt folder or use "Custom" |
+| `system_prompt` | STRING | "" | Custom system prompt (used when template is "Custom") |
+| `max_new_tokens` | INT | 2048 | Maximum length of generated text |
 | `temperature` | FLOAT | 0.7 | Creativity level (0.0-2.0) |
 | `do_sample` | BOOLEAN | True | Enable sampling for varied outputs |
 | `top_p` | FLOAT | 0.9 | Nucleus sampling threshold |
 | `top_k` | INT | 50 | Top-k sampling parameter |
 
-### Default System Prompt
+### Template System
 
-The node uses a specialized system prompt optimized for generating professional photography descriptions:
-
-```
-You are a professional photography prompt optimization expert. Transform simple scene descriptions into detailed, professional photography prompts.
-
-Include these elements:
-1. Subject Description: Detailed main subject (person, object, scene)
-2. Environment Details: Surrounding environment, background, atmosphere
-3. Lighting Effects: Light type, direction, contrast, color temperature
-4. Camera Settings: Perspective, depth of field, focal length
-5. Composition: Layout, foreground/midground/background
-6. Color Atmosphere: Main colors, color matching, saturation
-7. Texture Details: Materials, textures, detail expression
-8. Mood Atmosphere: Overall atmosphere, emotional expression
-
-Output Format:
-- Use English for professional photography terms
-- Separate elements with commas
-- Ensure descriptions are specific and visual
-- Length: 150-300 English words
-```
+The node supports customizable prompt templates stored in the `Prompt` folder as `.md` files:
+- **Custom**: Use the `system_prompt` parameter directly
+- **Template Files**: Select from available `.md` files in the `Prompt` folder
+- Templates automatically replace the `system_prompt` parameter when selected
 
 ### Loading Strategies
 
@@ -342,16 +330,19 @@ The node automatically selects the best loading strategy based on available GPU 
 
 ### Usage Examples
 
-#### Example 1: Simple Chinese Input
+#### Example 1: Using a Template
 ```
-Input: "一個女孩在咖啡廳"
+User Prompt: "一個女孩在咖啡廳"
+Template: (photography template from Prompt folder)
 Output: "A young woman sitting by the window in a cozy coffee shop, warm afternoon sunlight streaming through large glass windows creating soft shadows, wearing casual outfit, holding a cup of coffee, wooden table with laptop and notebook, blurred background with other customers, shallow depth of field, bokeh effect, warm color temperature, golden hour lighting..."
 ```
 
-#### Example 2: English Input
+#### Example 2: Custom System Prompt
 ```
-Input: "a cat sitting on a windowsill"
-Output: "A calico cat sitting on a sunlit windowsill, its long fur catching golden-hour light from the right, creating soft shadows across its face and body, wearing a quiet expression of peaceful solitude, surrounded by indoor plants and a wooden bookshelf in the background, shallow depth of field with bokeh-like blur..."
+User Prompt: "a cat sitting on a windowsill"
+Template: "Custom"
+System Prompt: "Describe the scene in poetic detail"
+Output: "A calico cat sitting on a sunlit windowsill, its long fur catching golden-hour light from the right, creating soft shadows across its face and body, wearing a quiet expression of peaceful solitude, surrounded by indoor plants and a wooden bookshelf in the background..."
 ```
 
 ### Memory Management
@@ -375,8 +366,9 @@ The node includes intelligent memory management:
 ### Troubleshooting
 
 **Model not found**
-- Ensure `qwen_3_4b.safetensors` is in `models/text_encoders/`
-- Check filename matches exactly (case-sensitive)
+- Ensure a Qwen safetensors file is in `models/text_encoders/` or `models/clip/`
+- Recommended filename: `qwen_3_4b.safetensors` (containing "qwen", "3", and "4b")
+- The node automatically searches for compatible Qwen model files
 
 **Out of memory**
 - Node will automatically use CPU offload
@@ -643,41 +635,53 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 
 ### 概述
 
-**QwenGPUInference** 節點是一個 AI 驅動的照片提示詞優化器，將簡單的場景描述轉換為詳細、專業的攝影提示詞。使用 Qwen3-4B 語言模型，具備智能 GPU 記憶體管理和 CPU Offload 支援，可與 ComfyUI 無縫整合。
+**QwenGPUInference** 節點是一個 AI 驅動的文本生成節點，使用 Qwen3-4B 語言模型，具備智能 GPU 記憶體管理和 CPU Offload 支援，可與 ComfyUI 無縫整合。可使用自訂模板將簡單描述轉換為詳細、專業的提示詞。
 
 ### 功能特色
 
-- **自動模型偵測**：自動在 text_encoders 資料夾中尋找 qwen_3_4b.safetensors
+- **自動模型偵測**：自動在 `text_encoders` 或 `clip` 資料夾中尋找 Qwen safetensors 檔案
 - **智能記憶體管理**：自動檢測 GPU 記憶體並選擇最佳載入策略
-- **CPU Offload 支援**：可與其他 ComfyUI 模型共存，無記憶體衝突
-- **專業提示詞生成**：將簡單描述轉換為詳細的攝影提示詞
+  - 完全 GPU 模式（可用 ≥7.5GB）：~26-30 tokens/秒
+  - CPU Offload 模式（可用 <7.5GB）：~1-2 tokens/秒，可與其他模型共存
+- **模板系統**：從 `Prompt` 資料夾選擇預製模板或使用自訂提示詞
 - **雙語支援**：處理中文和英文輸入
 - **自動配置下載**：從 HuggingFace 自動下載所需的模型配置檔案
-- **思考標籤移除**：自動移除模型推理過程
+- **思考標籤移除**：自動移除 `<think>...</think>` 推理標籤
 
 ### 需求
 
 - **GPU**：支援 CUDA 的 NVIDIA GPU（建議 12GB+，記憶體較少時使用 CPU offload）
-- **模型檔案**：qwen_3_4b.safetensors 放在 `ComfyUI/models/text_encoders/`
+- **模型檔案**：
+  - **必需**：`qwen_3_4b.safetensors`（或類似的 Qwen3-4B safetensors 檔案）
+  - **位置**：放在 `ComfyUI/models/text_encoders/` 或 `ComfyUI/models/clip/`
 - **Python 套件**：transformers、safetensors、torch
 
 ### 模型設置
 
-1. 從 [Hugging Face](https://huggingface.co/Qwen/Qwen3-4B) 下載 `qwen_3_4b.safetensors`
-2. 將檔案放在 `ComfyUI/models/text_encoders/`
-3. 首次執行會自動下載配置檔案
+1. 從 [Hugging Face](https://huggingface.co/Qwen/Qwen3-4B) 下載 Qwen3-4B safetensors
+   - 建議檔名：`qwen_3_4b.safetensors`
+2. 將檔案放在 `ComfyUI/models/text_encoders/` 或 `ComfyUI/models/clip/`
+3. 首次執行會自動下載配置檔案至 `_config` 子資料夾
 
 ### 參數說明
 
 | 參數 | 類型 | 預設值 | 說明 |
 |------|------|--------|------|
-| `user_prompt` | STRING | "一個女孩在咖啡廳" | 簡單場景描述 |
-| `system_prompt` | STRING | (見下方) | 專業攝影優化提示詞 |
-| `max_new_tokens` | INT | 2048 | 生成提示詞的最大長度 |
+| `user_prompt` | STRING | "A girl in a coffee shop" | 您的輸入文字/描述 |
+| `prompt_template` | COMBO | "Custom" | 從 Prompt 資料夾選擇模板或使用 "Custom" |
+| `system_prompt` | STRING | "" | 自訂系統提示詞（模板為 "Custom" 時使用）|
+| `max_new_tokens` | INT | 2048 | 生成文字的最大長度 |
 | `temperature` | FLOAT | 0.7 | 創意程度 (0.0-2.0) |
 | `do_sample` | BOOLEAN | True | 啟用採樣以產生變化輸出 |
 | `top_p` | FLOAT | 0.9 | Nucleus 採樣閾值 |
 | `top_k` | INT | 50 | Top-k 採樣參數 |
+
+### 模板系統
+
+節點支援儲存在 `Prompt` 資料夾中的自訂提示詞模板（`.md` 檔案）：
+- **Custom**：直接使用 `system_prompt` 參數
+- **模板檔案**：從 `Prompt` 資料夾中的 `.md` 檔案選擇
+- 選擇模板時會自動取代 `system_prompt` 參數
 
 ### 載入策略
 
@@ -706,16 +710,19 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 
 ### 使用範例
 
-#### 範例 1：簡單中文輸入
+#### 範例 1：使用模板
 ```
-輸入: "一個女孩在咖啡廳"
+使用者提示詞: "一個女孩在咖啡廳"
+模板: (Prompt 資料夾中的攝影模板)
 輸出: "A young woman sitting by the window in a cozy coffee shop, warm afternoon sunlight streaming through large glass windows creating soft shadows, wearing casual outfit, holding a cup of coffee, wooden table with laptop and notebook, blurred background with other customers, shallow depth of field, bokeh effect, warm color temperature, golden hour lighting..."
 ```
 
-#### 範例 2：英文輸入
+#### 範例 2：自訂系統提示詞
 ```
-輸入: "a cat sitting on a windowsill"
-輸出: "A calico cat sitting on a sunlit windowsill, its long fur catching golden-hour light from the right, creating soft shadows across its face and body, wearing a quiet expression of peaceful solitude, surrounded by indoor plants and a wooden bookshelf in the background, shallow depth of field with bokeh-like blur..."
+使用者提示詞: "a cat sitting on a windowsill"
+模板: "Custom"
+系統提示詞: "用詩意的細節描述場景"
+輸出: "A calico cat sitting on a sunlit windowsill, its long fur catching golden-hour light from the right, creating soft shadows across its face and body, wearing a quiet expression of peaceful solitude, surrounded by indoor plants and a wooden bookshelf in the background..."
 ```
 
 ### 記憶體管理
@@ -739,8 +746,9 @@ NumberListGenerator 節點可根據自訂參數創建數字列表，支援有序
 ### 疑難排解
 
 **找不到模型**
-- 確保 `qwen_3_4b.safetensors` 在 `models/text_encoders/`
-- 檢查檔案名稱完全符合（區分大小寫）
+- 確保 Qwen safetensors 檔案在 `models/text_encoders/` 或 `models/clip/`
+- 建議檔名：`qwen_3_4b.safetensors`（包含 "qwen"、"3" 和 "4b"）
+- 節點會自動搜尋相容的 Qwen 模型檔案
 
 **記憶體不足**
 - 節點會自動使用 CPU offload
