@@ -2,9 +2,10 @@
 test_*.py
 *_test.py
 
-# Test markdown files (except README.md)
+# Test markdown files (except README.md and Prompt folder)
 *.md
 !README.md
+!Prompt/*.md
 
 # Config files
 openaimodel.json
@@ -21,9 +22,6 @@ __pycache__/
 .idea/
 *.swp
 *.swo
-
-# Prompt directory
-Prompt/
 
 # Claude AI directory
 .claude/
