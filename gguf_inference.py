@@ -9,7 +9,20 @@ import base64
 import io
 import numpy as np
 import folder_paths
+import urllib.request
 from typing import Optional, Tuple, List
+
+# Suggested models for download
+SUGGESTED_MODELS = {
+    "Download: Z-Image": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q5_K_M.gguf",
+    "Download: Z-Image (Abliterated)": "https://huggingface.co/Mungert/Qwen3-4B-abliterated-GGUF/resolve/main/Qwen3-4B-abliterated-q4_k_m.gguf",
+    "Download: Qwen": "https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+    "Download: Qwen (Abliterated)": "https://huggingface.co/mradermacher/Qwen2.5-VL-7B-Instruct-abliterated-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-abliterated.Q4_K_M.gguf",
+}
+
+SUGGESTED_MMPROJ = {
+    "Download: mmproj": "https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/mmproj-F16.gguf",
+}
 
 class GGUFInference:
     """
@@ -34,6 +47,28 @@ class GGUFInference:
         except ImportError:
             self.llama_cpp_available = False
             print("llama-cpp-python is not installed")
+
+    @classmethod
+    def _download_file(cls, url: str, destination: str) -> bool:
+        """Download file from URL with progress reporting"""
+        try:
+            print(f"Downloading: {url}")
+            print(f"Destination: {destination}")
+
+            def report_progress(block_num, block_size, total_size):
+                downloaded = block_num * block_size
+                if total_size > 0:
+                    percent = min(downloaded * 100 / total_size, 100)
+                    downloaded_mb = downloaded / (1024 * 1024)
+                    total_mb = total_size / (1024 * 1024)
+                    print(f"Progress: {percent:.1f}% ({downloaded_mb:.1f}MB / {total_mb:.1f}MB)", end='\r')
+
+            urllib.request.urlretrieve(url, destination, reporthook=report_progress)
+            print(f"\nDownload completed: {os.path.basename(destination)}")
+            return True
+        except Exception as e:
+            print(f"\nDownload failed: {e}")
+            return False
 
     @classmethod
     def _get_gguf_files(cls):
@@ -66,10 +101,15 @@ class GGUFInference:
         except:
             pass
 
-        if not gguf_files:
-            return ["No GGUF files found"]
+        # Add suggested models to the list
+        suggested_models = list(SUGGESTED_MODELS.keys())
 
-        return sorted(gguf_files)
+        if not gguf_files:
+            # If no local models, only show suggested models
+            return suggested_models
+
+        # Return local models first, then suggested models
+        return sorted(gguf_files) + suggested_models
 
     @classmethod
     def _get_mmproj_files(cls):
@@ -102,10 +142,15 @@ class GGUFInference:
         except:
             pass
 
-        if not mmproj_files:
-            return ["No mmproj files"]
+        # Add suggested mmproj to the list
+        suggested_mmproj = list(SUGGESTED_MMPROJ.keys())
 
-        return sorted(mmproj_files)
+        if not mmproj_files:
+            # If no local mmproj files, show "No mmproj files" and suggested option
+            return ["No mmproj files"] + suggested_mmproj
+
+        # Return local mmproj files first, then suggested option
+        return sorted(mmproj_files) + suggested_mmproj
 
     @classmethod
     def _get_prompt_templates(cls):
@@ -447,23 +492,54 @@ class GGUFInference:
             print(error_msg)
             return (error_msg,)
 
-        # Get full path from model name
-        gguf_files = self._get_gguf_files()
-        model_path = None
-        for full_path in gguf_files:
-            if os.path.basename(full_path) == model:
-                model_path = full_path
-                break
+        # Check if model is a suggested download
+        if model in SUGGESTED_MODELS:
+            download_url = SUGGESTED_MODELS[model]
+            filename = os.path.basename(download_url)
 
-        if model_path is None or model_path == "No GGUF files found":
-            error_msg = f"Error: Model not found: {model}\nPlease place GGUF files in text_encoders or clip folder."
-            print(error_msg)
-            return (error_msg,)
+            # Get clip folder path for downloading
+            try:
+                clip_paths = folder_paths.get_folder_paths("clip")
+                if clip_paths and len(clip_paths) > 0:
+                    download_dir = clip_paths[0]
+                else:
+                    error_msg = "Error: Cannot find clip folder for downloading model."
+                    print(error_msg)
+                    return (error_msg,)
+            except:
+                error_msg = "Error: Cannot access clip folder for downloading model."
+                print(error_msg)
+                return (error_msg,)
 
-        if not os.path.exists(model_path):
-            error_msg = f"Error: Model file does not exist: {model_path}"
-            print(error_msg)
-            return (error_msg,)
+            model_path = os.path.join(download_dir, filename)
+
+            # Check if file already exists
+            if os.path.exists(model_path):
+                print(f"Model already exists: {filename}")
+            else:
+                print(f"Downloading suggested model: {model}")
+                if not self._download_file(download_url, model_path):
+                    error_msg = f"Error: Failed to download model from {download_url}"
+                    print(error_msg)
+                    return (error_msg,)
+        else:
+            # Get full path from model name
+            gguf_files = self._get_gguf_files()
+            model_path = None
+            for full_path in gguf_files:
+                if os.path.basename(full_path) == model:
+                    model_path = full_path
+                    break
+
+            if model_path is None:
+                error_msg = f"Error: Model not found: {model}\nPlease place GGUF files in text_encoders or clip folder."
+                print(error_msg)
+                return (error_msg,)
+
+            if not os.path.exists(model_path):
+                error_msg = f"Error: Model file does not exist: {model_path}"
+                print(error_msg)
+                return (error_msg,)
 
         # Check if this is a vision model
         is_vision_model = self._is_vision_model(model_path)
@@ -486,19 +562,60 @@ class GGUFInference:
                 print("=" * 70)
                 enable_vision = False
             else:
-                # Find full path for mmproj from text_encoders and clip folders
-                mmproj_files = self._get_mmproj_files()
-                for full_path in mmproj_files:
-                    if os.path.basename(full_path) == mmproj_file:
-                        mmproj_path = full_path
-                        break
+                # Check if mmproj is a suggested download
+                if mmproj_file in SUGGESTED_MMPROJ:
+                    download_url = SUGGESTED_MMPROJ[mmproj_file]
+                    filename = os.path.basename(download_url)
 
-                if mmproj_path is None or not os.path.exists(mmproj_path):
-                    print("=" * 70)
-                    print(f"WARNING: mmproj file not found: {mmproj_file}")
-                    print("Falling back to text-only mode.")
-                    print("=" * 70)
-                    enable_vision = False
+                    # Get clip folder path for downloading
+                    try:
+                        clip_paths = folder_paths.get_folder_paths("clip")
+                        if clip_paths and len(clip_paths) > 0:
+                            download_dir = clip_paths[0]
+                        else:
+                            print("=" * 70)
+                            print("WARNING: Cannot find clip folder for downloading mmproj.")
+                            print("Falling back to text-only mode.")
+                            print("=" * 70)
+                            enable_vision = False
+                            mmproj_path = None
+                    except:
+                        print("=" * 70)
+                        print("WARNING: Cannot access clip folder for downloading mmproj.")
+                        print("Falling back to text-only mode.")
+                        print("=" * 70)
+                        enable_vision = False
+                        mmproj_path = None
+
+                    if enable_vision:
+                        mmproj_path = os.path.join(download_dir, filename)
+
+                        # Check if file already exists
+                        if os.path.exists(mmproj_path):
+                            print(f"mmproj already exists: {filename}")
+                        else:
+                            print(f"Downloading suggested mmproj: {mmproj_file}")
+                            if not self._download_file(download_url, mmproj_path):
+                                print("=" * 70)
+                                print(f"WARNING: Failed to download mmproj from {download_url}")
+                                print("Falling back to text-only mode.")
+                                print("=" * 70)
+                                enable_vision = False
+                                mmproj_path = None
+                else:
+                    # Find full path for mmproj from text_encoders and clip folders
+                    mmproj_files = self._get_mmproj_files()
+                    for full_path in mmproj_files:
+                        if os.path.basename(full_path) == mmproj_file:
+                            mmproj_path = full_path
+                            break
+
+                    if mmproj_path is None or not os.path.exists(mmproj_path):
+                        print("=" * 70)
+                        print(f"WARNING: mmproj file not found: {mmproj_file}")
+                        print("Falling back to text-only mode.")
+                        print("=" * 70)
+                        enable_vision = False
 
         # Load model
         if not self._load_model(model_path, enable_vision, mmproj_path):
