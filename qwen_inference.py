@@ -127,7 +127,7 @@ class QwenGPUInference:
             },
             "optional": {
                 "keep_model_loaded": ("BOOLEAN", {
-                    "default": True,
+                    "default": False,
                     "tooltip": "WARNING: Set to False to unload model after generation. Required for low VRAM workflows."
                 }),
                 "use_flash_attention": ("BOOLEAN", {

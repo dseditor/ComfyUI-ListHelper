@@ -24,6 +24,7 @@ from typing import List, Dict, Any, Tuple
 from random import Random
 from datetime import datetime
 from .qwen_inference import QwenGPUInference
+from .gguf_inference import GGUFInference
 
 class AudioListGenerator:
     @classmethod
@@ -937,6 +938,7 @@ NODE_CLASS_MAPPINGS = {
     "SaveVideoPath": SaveVideoPath,
     "FrameMatch": FrameMatch,
     "QwenGPUInference": QwenGPUInference,
+    "GGUFInference": GGUFInference,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -950,5 +952,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SaveVideoPath": "SaveVideoPath",
     "FrameMatch": "FrameMatch",
     "QwenGPUInference": "Qwen_TE_LLM",
+    "GGUFInference": "GGUF_LLM",
 }
 
