@@ -1,0 +1,13 @@
+fixed:soft jawline
+fixed:sharp jawline
+fixed:defined cheekbones
+fixed:high cheekbones
+fixed:full cheeks
+fixed:slender cheeks
+fixed:delicate features
+fixed:oval face
+fixed:heart-shaped face
+fixed:round face
+fixed:square jawline
+fixed:v-shaped face
+fixed:diamond-shaped face

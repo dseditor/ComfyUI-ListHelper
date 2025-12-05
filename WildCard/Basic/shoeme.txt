@@ -1,0 +1,18 @@
+leather
+suede
+patent leather
+canvas
+fabric
+woven
+cotton
+synthetic
+mesh
+nylon
+polyester
+denim
+velvet
+satin
+wooden sole
+rubber sole
+lace material
+silk finish

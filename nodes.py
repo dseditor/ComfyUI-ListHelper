@@ -925,7 +925,131 @@ class FrameMatch:
         return (matched_images,)
 
 
-    
+class SimpleWildCardPlayer:
+    """
+    簡單的 Wildcard 抽取節點
+    從 WildCard 資料夾中隨機抽取內容，支援批次生成和自訂範本
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        # 掃描 WildCard 資料夾取得所有範本
+        wildcard_root = os.path.join(os.path.dirname(__file__), "WildCard")
+        templates = ["Basic"]  # 預設範本
+
+        if os.path.exists(wildcard_root):
+            templates = [d for d in os.listdir(wildcard_root)
+                        if os.path.isdir(os.path.join(wildcard_root, d))]
+
+        if not templates:
+            templates = ["Basic"]
+
+        return {
+            "required": {
+                "basic_prompt": ("STRING", {
+                    "multiline": True,
+                    "default": "(masterpiece, best quality, photorealistic, 8k, highly detailed, solo, 1girl, realistic photography:1.2), natural skin texture, well-rested appearance, detailed eyelashes, with blunt fringe, see-through bangs, Long sideburns, side locks framing face, detailed hair strands, over fringe, with, on neckline, (she wearing a full and proper, lace undergarment, tones, fully clothed, fully covering legs, complete outfit.)",
+                    "tooltip": "固定的基礎提示詞"
+                }),
+                "wildcard_template": (templates, {
+                    "default": "Basic",
+                    "tooltip": "選擇 WildCard 範本資料夾"
+                }),
+                "wildcard_files": ("STRING", {
+                    "multiline": True,
+                    "default": "years, age, pretit, contory, cm, face, realface_skin, bodytype, breasts, expression, eyeiled, eye_shape, eye_quality, eye_effect, eyecolor, hh, colors4, hairsize, hairlong, colors3, headwear, colors2, earring, earring-visibility, neck, mate, grid, wetdry, clothestight, tt-clothes, garter-tights, colors5, socks, shoeme, shoes, 169, light, RandomPose-light, backsence",
+                    "tooltip": "要抽取的 Wildcard 檔案名稱（不含 .txt），用逗號分隔"
+                }),
+                "batch_count": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 1000,
+                    "step": 1,
+                    "tooltip": "要生成的批次數量"
+                }),
+                "seed": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 2147483647,
+                    "tooltip": "隨機種子"
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt_list",)
+    OUTPUT_IS_LIST = (True,)
+    FUNCTION = "generate_wildcards"
+    CATEGORY = "ListHelper"
+
+    def generate_wildcards(self, basic_prompt, wildcard_template, wildcard_files, batch_count, seed):
+        """
+        生成 Wildcard 提示詞列表
+
+        Args:
+            basic_prompt: 基礎提示詞
+            wildcard_template: 範本資料夾名稱
+            wildcard_files: 要抽取的檔案列表（逗號分隔）
+            batch_count: 批次數量
+            seed: 隨機種子
+
+        Returns:
+            提示詞列表
+        """
+        # 解析 wildcard 檔案名稱
+        file_names = [name.strip() for name in wildcard_files.split(",") if name.strip()]
+
+        # 載入所有 wildcard 檔案內容
+        wildcard_root = os.path.join(os.path.dirname(__file__), "WildCard", wildcard_template)
+        wildcard_data = {}
+
+        for file_name in file_names:
+            file_path = os.path.join(wildcard_root, f"{file_name}.txt")
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = [line.strip() for line in f.readlines() if line.strip()]
+                        if content:
+                            wildcard_data[file_name] = content
+                            print(f"Loaded wildcard: {file_name} ({len(content)} entries)")
+                except Exception as e:
+                    print(f"Error loading {file_name}.txt: {e}")
+            else:
+                print(f"Warning: {file_name}.txt not found in {wildcard_template}")
+
+        if not wildcard_data:
+            print("No wildcard files loaded, returning basic prompt only")
+            return ([basic_prompt] * batch_count,)
+
+        # 生成批次提示詞
+        prompt_list = []
+
+        for i in range(batch_count):
+            current_seed = seed + i
+            rng = Random(current_seed)
+
+            # 建構提示詞
+            wildcard_parts = []
+            for file_name in file_names:
+                if file_name in wildcard_data:
+                    selected = rng.choice(wildcard_data[file_name])
+                    wildcard_parts.append(selected)
+
+            # 組合最終提示詞
+            if wildcard_parts:
+                wildcard_text = ", ".join(wildcard_parts)
+                final_prompt = f"{basic_prompt}, {wildcard_text}"
+            else:
+                final_prompt = basic_prompt
+
+            prompt_list.append(final_prompt)
+
+            print(f"Generated prompt {i+1}/{batch_count} with seed {current_seed}")
+
+        return (prompt_list,)
+
+
+
 NODE_CLASS_MAPPINGS = {
     "AudioListGenerator": AudioListGenerator,
     "AudioToFrameCount": AudioToFrameCount,
@@ -937,6 +1061,7 @@ NODE_CLASS_MAPPINGS = {
     "LoadVideoPath": LoadVideoPath,
     "SaveVideoPath": SaveVideoPath,
     "FrameMatch": FrameMatch,
+    "SimpleWildCardPlayer": SimpleWildCardPlayer,
     "QwenGPUInference": QwenGPUInference,
     "GGUFInference": GGUFInference,
 }
@@ -951,6 +1076,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "LoadVideoPath": "LoadVideoPath",
     "SaveVideoPath": "SaveVideoPath",
     "FrameMatch": "FrameMatch",
+    "SimpleWildCardPlayer": "Simple WildCard Player",
     "QwenGPUInference": "Qwen_TE_LLM",
     "GGUFInference": "GGUF_LLM",
 }

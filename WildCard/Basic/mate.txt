@@ -1,0 +1,17 @@
+cotton
+linen
+silk
+wool
+denim
+leather
+polyester
+nylon
+spandex
+elastane
+acrylic
+rayon
+velvet
+satin
+lace
+chiffon
+canvas

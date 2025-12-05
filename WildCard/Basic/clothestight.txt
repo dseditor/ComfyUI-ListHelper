@@ -1,0 +1,17 @@
+tight-fitting
+form-fitting
+skin-tight
+slim-fit
+body-hugging
+close-fitting
+loose-fitting
+oversized
+baggy
+relaxed-fit
+flowy
+casual-fit
+regular-fit
+straight-cut
+classic-fit
+structured
+tailored

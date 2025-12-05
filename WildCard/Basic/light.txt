@@ -1,0 +1,30 @@
+fixed:soft amber light with mild shadow, gentle snowfall under bright daylight
+fixed:low golden sun with warm tone, light rain in sunlit scene
+fixed:warm twilight with long shadows, soft snowflakes falling in glowing sky
+fixed:sunlit glow and gentle contrast, sunshower with warm highlights
+fixed:golden-hour light and soft edge, drifting snow under golden sun
+fixed:evening amber tone with blur, light rain streaks in warm glow
+fixed:low sunlight with soft streaks, gentle snowfall in clear air
+fixed:dawn light with cyan haze, faint rain shimmer in morning light
+fixed:horizon shimmer with dim glow, soft snow drifting in horizon glow
+fixed:cold morning light matte tone, light rain drops in crisp air
+fixed:muted light with blurred shadow, gentle snowfall in bright atmosphere
+fixed:twilight pink-orange gradient, sunlit rain with pastel tones
+fixed:pastel highlights fading light, soft snowflakes in glowing dusk
+fixed:lavender afterglow from sunset, light rain shimmer in warm afterglow
+fixed:desaturated ambient twilight, gentle snowfall with fading light
+fixed:soft amber light with mild shadow, intense blizzard under glowing daylight
+fixed:low golden sun with warm tone, heavy storm rain in sunlit scene
+fixed:warm twilight with long shadows, fierce snowstorm glowing in warm sky
+fixed:sunlit glow and gentle contrast, torrential rain with bright highlights
+fixed:golden-hour light and soft edge, raging blizzard under golden sun
+fixed:evening amber tone with blur, storm rainfall streaks in warm glow
+fixed:low sunlight with soft streaks, violent snowstorm in clear air
+fixed:dawn light with cyan haze, heavy storm rain shimmering in morning light
+fixed:horizon shimmer with dim glow, blizzard winds with glowing horizon
+fixed:cold morning light matte tone, storm rainfall in crisp daylight
+fixed:muted light with blurred shadow, fierce blizzard in bright atmosphere
+fixed:twilight pink-orange gradient, torrential sunlit rain with pastel tones
+fixed:pastel highlights fading light, raging snowstorm in glowing dusk
+fixed:lavender afterglow from sunset, storm rainfall shimmering in warm afterglow
+fixed:desaturated ambient twilight, violent blizzard with fading light

@@ -1,0 +1,16 @@
+fixed:deep brown
+fixed:warm brown
+fixed:light brown
+fixed:dark blue
+fixed:sky blue
+fixed:deep green
+fixed:vivid green
+fixed:hazel (brown-green)
+fixed:hazel (green-gold)
+fixed:cool gray
+fixed:silver gray
+fixed:amber
+fixed:golden amber
+fixed:pale blue
+fixed:aquamarine
+fixed:black
