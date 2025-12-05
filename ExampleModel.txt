@@ -1,9 +1,0 @@
-在GGUF節點中，假使使用者沒有GGUF模型，提供建議模型下載功能
-在模型清單中，除了資料夾搜尋，新增幾個建議模型項目，並標註為Download，執行工作流會自動下載，之後會出現在clip資料夾下
-Z-Image:https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q5_K_M.gguf
-Z-Image(Abliterated)：https://huggingface.co/Mungert/Qwen3-4B-abliterated-GGUF/resolve/main/Qwen3-4B-abliterated-q4_k_m.gguf
-Qwen:https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf
-Qwen(Abliterated):https://huggingface.co/mradermacher/Qwen2.5-VL-7B-Instruct-abliterated-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-abliterated.Q4_K_M.gguf
-假使有同檔名的模型，選取這些項目後不會觸發下載
-假使沒有mmproj可選擇，則建議如下
-mmproj:https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/mmproj-F16.gguf
