@@ -933,16 +933,16 @@ class SimpleWildCardPlayer:
 
     @classmethod
     def INPUT_TYPES(cls):
-        # 掃描 WildCard 資料夾取得所有範本
-        wildcard_root = os.path.join(os.path.dirname(__file__), "WildCard")
-        templates = ["Basic"]  # 預設範本
+        # 掃描 wildcard 資料夾取得所有範本
+        wildcard_root = os.path.join(os.path.dirname(__file__), "wildcard")
+        templates = ["basic"]  # 預設範本
 
         if os.path.exists(wildcard_root):
             templates = [d for d in os.listdir(wildcard_root)
                         if os.path.isdir(os.path.join(wildcard_root, d))]
 
         if not templates:
-            templates = ["Basic"]
+            templates = ["basic"]
 
         return {
             "required": {
@@ -952,8 +952,8 @@ class SimpleWildCardPlayer:
                     "tooltip": "固定的基礎提示詞"
                 }),
                 "wildcard_template": (templates, {
-                    "default": "Basic",
-                    "tooltip": "選擇 WildCard 範本資料夾"
+                    "default": "basic",
+                    "tooltip": "選擇 wildcard 範本資料夾"
                 }),
                 "wildcard_files": ("STRING", {
                     "multiline": True,
@@ -1000,7 +1000,7 @@ class SimpleWildCardPlayer:
         file_names = [name.strip() for name in wildcard_files.split(",") if name.strip()]
 
         # 載入所有 wildcard 檔案內容
-        wildcard_root = os.path.join(os.path.dirname(__file__), "WildCard", wildcard_template)
+        wildcard_root = os.path.join(os.path.dirname(__file__), "wildcard", wildcard_template)
         wildcard_data = {}
 
         for file_name in file_names:
