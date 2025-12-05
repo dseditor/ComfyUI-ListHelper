@@ -1,8 +1,8 @@
 {
   "id": "9ae6082b-c7f4-433c-9971-7a8f65a3ea65",
   "revision": 0,
-  "last_node_id": 49,
-  "last_link_id": 48,
+  "last_node_id": 50,
+  "last_link_id": 50,
   "nodes": [
     {
       "id": 39,
@@ -45,7 +45,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": [
         "qwen_3_4b.safetensors",
@@ -94,7 +95,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": [
         "ae.safetensors"
@@ -140,7 +142,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": []
     },
@@ -179,7 +182,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": [
         1024,
@@ -219,7 +223,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": [
         "z-image"
@@ -281,7 +286,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": [
         410513707389275,
@@ -339,7 +345,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": []
     },
@@ -384,7 +391,8 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": [
         3
@@ -409,7 +417,9 @@
       "inputs": [],
       "outputs": [],
       "title": "Model link",
-      "properties": {},
+      "properties": {
+        "widget_ue_connectable": {}
+      },
       "widgets_values": [
         "## Report issue\n\nIf you found any issues when running this workflow, [report template issue here](https://github.com/Comfy-Org/workflow_templates/issues)\n\n\n## Model links\n\n**text_encoders**\n\n- [qwen_3_4b.safetensors](https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors)\n\n**diffusion_models**\n\n- [z_image_turbo_bf16.safetensors](https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors)\n\n**vae**\n\n- [ae.safetensors](https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors)\n\n\nModel Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 text_encoders/\n│   │      └── qwen_3_4b.safetensors\n│   ├── 📂 diffusion_models/\n│   │      └── z_image_turbo_bf16.safetensors\n│   └── 📂 vae/\n│          └── ae.safetensors\n```\n\n"
       ],
@@ -428,7 +438,7 @@
         370
       ],
       "flags": {},
-      "order": 7,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
@@ -442,7 +452,7 @@
           "widget": {
             "name": "text"
           },
-          "link": 47
+          "link": 50
         }
       ],
       "outputs": [
@@ -465,7 +475,10 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {
+          "text": true
+        }
       },
       "widgets_values": [
         "Latina female with thick wavy hair, harbor boats and pastel houses behind. Breezy seaside light, warm tones, cinematic close-up."
@@ -514,52 +527,12 @@
         "hasSecondTab": false,
         "secondTabText": "Send Back",
         "secondTabOffset": 80,
-        "secondTabWidth": 65
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
       },
       "widgets_values": [
         "z_image_turbo_bf16.safetensors",
         "default"
-      ]
-    },
-    {
-      "id": 48,
-      "type": "QwenGPUInference",
-      "pos": [
-        137.4698090330546,
-        -69.64821666321234
-      ],
-      "size": [
-        400,
-        286
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "text",
-          "type": "STRING",
-          "links": [
-            47,
-            48
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "Listhelper",
-        "ver": "0599db202ae2b6f1b283bd90b03420ea2fa541e3",
-        "Node name for S&R": "QwenGPUInference"
-      },
-      "widgets_values": [
-        "Latina female with thick wavy hair, harbor boats and pastel houses behind. Breezy seaside light, warm tones, cinematic close-up.",
-        "photography_en.md",
-        "",
-        2048,
-        0.7,
-        true,
-        0.9,
-        50
       ]
     },
     {
@@ -570,26 +543,72 @@
         -68.82863434298851
       ],
       "size": [
-        140,
-        76
+        210,
+        88
       ],
       "flags": {},
-      "order": 8,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
           "name": "source",
           "type": "*",
-          "link": 48
+          "link": 49
         }
       ],
       "outputs": [],
       "properties": {
         "cnr_id": "comfy-core",
         "ver": "0.3.76",
-        "Node name for S&R": "PreviewAny"
+        "Node name for S&R": "PreviewAny",
+        "widget_ue_connectable": {}
       },
       "widgets_values": []
+    },
+    {
+      "id": 50,
+      "type": "QwenGPUInference",
+      "pos": [
+        150,
+        -170
+      ],
+      "size": [
+        400,
+        358
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            49,
+            50
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "7e6f2430f766cccb7d8efb29b22a8e9bc63dfbfe",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "QwenGPUInference"
+      },
+      "widgets_values": [
+        "Latina female with thick wavy hair, harbor boats and pastel houses behind. Breezy seaside light, warm tones, cinematic close-up.",
+        "photography_en.md",
+        "",
+        2048,
+        0.7,
+        false,
+        false,
+        false,
+        true,
+        0.9,
+        50
+      ]
     }
   ],
   "links": [
@@ -674,20 +693,20 @@
       "IMAGE"
     ],
     [
-      47,
-      48,
-      0,
-      45,
-      1,
-      "STRING"
-    ],
-    [
-      48,
-      48,
+      49,
+      50,
       0,
       49,
       0,
       "*"
+    ],
+    [
+      50,
+      50,
+      0,
+      45,
+      1,
+      "STRING"
     ]
   ],
   "groups": [
@@ -695,8 +714,8 @@
       "id": 2,
       "title": "Step2 - Image size",
       "bounding": [
-        120.2638101844517,
-        665.2545050421948,
+        120,
+        670,
         290,
         200
       ],
@@ -708,8 +727,8 @@
       "id": 3,
       "title": "Step3 - Prompt",
       "bounding": [
-        430.2638101844517,
-        235.2545050421948,
+        430,
+        240,
         450,
         540
       ],
@@ -721,8 +740,8 @@
       "id": 4,
       "title": "Step1 - Load models",
       "bounding": [
-        120.2638101844517,
-        235.2545050421948,
+        120,
+        240,
         290,
         413.6
       ],
@@ -736,16 +755,17 @@
     "ds": {
       "scale": 1.0168323761634441,
       "offset": [
-        24.38891495737217,
-        115.54233181515173
+        46.68038358393303,
+        229.62209827348707
       ]
     },
-    "frontendVersion": "1.32.10",
+    "frontendVersion": "1.33.10",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,
     "VHS_KeepIntermediate": true,
-    "workflowRendererVersion": "LG"
+    "workflowRendererVersion": "LG",
+    "ue_links": []
   },
   "version": 0.4
 }
