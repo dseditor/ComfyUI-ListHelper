@@ -1,7 +1,7 @@
 [project]
 name = "Listhelper"
 description = "The ListHelper collection is a comprehensive set of custom nodes for ComfyUI that provides powerful list manipulation capabilities. This collection includes audio processing, text splitting, and number generation tools for enhanced workflow automation.Qwen/GGUF Node For LLM function,SimpleWildCardSystem"
-version = "1.1.6"
+version = "1.1.7"
 license = {file = "LICENSE"}
 dependencies = ["regex", "accelerate"]
 
