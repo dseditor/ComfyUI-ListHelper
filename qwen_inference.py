@@ -5,6 +5,7 @@ import requests
 import time
 import re
 import gc
+import random
 from typing import Optional, Tuple, Dict
 
 class QwenGPUInference:
@@ -126,6 +127,7 @@ class QwenGPUInference:
                 }),
             },
             "optional": {
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
                 "keep_model_loaded": ("BOOLEAN", {
                     "default": False,
                     "tooltip": "WARNING: Set to False to unload model after generation. Required for low VRAM workflows."
@@ -137,10 +139,6 @@ class QwenGPUInference:
                 "use_quantization": ("BOOLEAN", {
                     "default": False,
                     "tooltip": "Enable INT8 quantization for lower memory usage (slower inference)"
-                }),
-                "do_sample": ("BOOLEAN", {
-                    "default": True,
-                    "tooltip": "Enable sampling"
                 }),
                 "top_p": ("FLOAT", {
                     "default": 0.9,
@@ -157,8 +155,8 @@ class QwenGPUInference:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("text",)
+    RETURN_TYPES = ("STRING", "INT",)
+    RETURN_NAMES = ("text", "used_seed",)
     FUNCTION = "inference"
     CATEGORY = "ListHelper"
 
@@ -520,13 +518,13 @@ class QwenGPUInference:
         system_prompt: str,
         max_new_tokens: int,
         temperature: float,
+        seed: int = 0,
         keep_model_loaded: bool = True,
         use_flash_attention: bool = False,
         use_quantization: bool = False,
-        do_sample: bool = True,
         top_p: float = 0.9,
         top_k: int = 50,
-    ) -> Tuple[str]:
+    ) -> Tuple[str, int]:
         """Execute inference with optional FlashAttention-2 and INT8 quantization"""
 
         # Auto-find Qwen model
@@ -534,21 +532,25 @@ class QwenGPUInference:
         if model_path is None:
             error_msg = "Error: Qwen model file not found.\nPlease place the correct model file (e.g., qwen_3_4b.safetensors) in ComfyUI's models/text_encoders or models/clip folder."
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, seed)
 
         if not os.path.exists(model_path):
             error_msg = f"Error: Model file does not exist: {model_path}\nPlease place the correct model file in the text_encoders or clip folder."
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, seed)
 
         # Use fixed repo_id
         repo_id = "Qwen/Qwen3-4B"
         if not self._load_model(model_path, repo_id, use_quantization, use_flash_attention):
             error_msg = "Error: Model loading failed. Please check the model file and ensure it's properly placed in the text_encoders or clip folder."
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, seed)
 
         try:
+            # Handle seed - ComfyUI's control_after_generate will handle randomization
+            if seed > 0:
+                torch.manual_seed(seed)
+            
             # Load and apply template
             template_content = ""
             if prompt_template != "Custom":
@@ -575,14 +577,14 @@ class QwenGPUInference:
             inputs = {k: v.to(device) for k, v in inputs.items()}
 
             inference_start = time.time()
-            print(f"Inference starting...")
+            print(f"Inference starting (Seed: {seed})...")
 
             with torch.no_grad():
                 outputs = self.model.generate(
                     input_ids=inputs['input_ids'],
                     attention_mask=inputs['attention_mask'],
                     max_new_tokens=max_new_tokens,
-                    do_sample=do_sample,
+                    do_sample=True,
                     temperature=temperature,
                     top_p=top_p,
                     top_k=top_k,
@@ -621,10 +623,10 @@ class QwenGPUInference:
                 self.current_model_path = None
                 self._free_gpu_memory()
 
-            return (response,)
+            return (response, seed)
 
         except Exception as e:
             import traceback
             error_msg = f"Inference failed: {str(e)}\n{traceback.format_exc()}"
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, seed)

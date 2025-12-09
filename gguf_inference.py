@@ -7,6 +7,7 @@ import subprocess
 import platform
 import base64
 import io
+import random
 import numpy as np
 import folder_paths
 import urllib.request
@@ -244,6 +245,7 @@ class GGUFInference:
                 }),
             },
             "optional": {
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
                 "keep_model_loaded": ("BOOLEAN", {
                     "default": False,
                     "tooltip": "Keep model in memory after inference"
@@ -266,8 +268,8 @@ class GGUFInference:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("text",)
+    RETURN_TYPES = ("STRING", "INT",)
+    RETURN_NAMES = ("text", "used_seed",)
     FUNCTION = "inference"
     CATEGORY = "ListHelper"
 
@@ -471,12 +473,13 @@ class GGUFInference:
         temperature: float,
         top_p: float,
         top_k: int,
+        seed: int = 0,
         keep_model_loaded: bool = False,
         enable_vision: bool = False,
         mmproj_file: str = "No mmproj files",
         image = None,
         auto_install_llama_cpp: bool = False,
-    ) -> Tuple[str]:
+    ) -> Tuple[str, int]:
         """Execute GGUF model inference"""
 
         # Check if llama-cpp-python is available
@@ -490,7 +493,7 @@ class GGUFInference:
             else:
                 error_msg = "ERROR: llama-cpp-python is not installed.\n\nPlease either:\n1. Enable 'auto_install_llama_cpp' option (Windows only)\n2. Install manually: pip install llama-cpp-python"
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, seed)
 
         # Check if model is a suggested download
         if model in SUGGESTED_MODELS:
@@ -505,11 +508,11 @@ class GGUFInference:
                 else:
                     error_msg = "Error: Cannot find clip folder for downloading model."
                     print(error_msg)
-                    return (error_msg,)
+                    return (error_msg, seed)
             except:
                 error_msg = "Error: Cannot access clip folder for downloading model."
                 print(error_msg)
-                return (error_msg,)
+                return (error_msg, seed)
 
             model_path = os.path.join(download_dir, filename)
 
@@ -521,7 +524,7 @@ class GGUFInference:
                 if not self._download_file(download_url, model_path):
                     error_msg = f"Error: Failed to download model from {download_url}"
                     print(error_msg)
-                    return (error_msg,)
+                    return (error_msg, seed)
         else:
             # Get full path from model name
             gguf_files = self._get_gguf_files()
@@ -534,12 +537,12 @@ class GGUFInference:
             if model_path is None:
                 error_msg = f"Error: Model not found: {model}\nPlease place GGUF files in text_encoders or clip folder."
                 print(error_msg)
-                return (error_msg,)
+                return (error_msg, seed)
 
             if not os.path.exists(model_path):
                 error_msg = f"Error: Model file does not exist: {model_path}"
                 print(error_msg)
-                return (error_msg,)
+                return (error_msg, seed)
 
         # Check if this is a vision model
         is_vision_model = self._is_vision_model(model_path)
@@ -621,7 +624,7 @@ class GGUFInference:
         if not self._load_model(model_path, enable_vision, mmproj_path):
             error_msg = "Error: Model loading failed.\nPlease check if llama-cpp-python is properly installed."
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, seed)
 
         try:
             # Load and apply template
@@ -645,7 +648,7 @@ class GGUFInference:
                 if image_url is None:
                     error_msg = "Error: Failed to convert image to base64 format."
                     print(error_msg)
-                    return (error_msg,)
+                    return (error_msg, seed)
 
                 messages.append({
                     "role": "user",
@@ -661,16 +664,23 @@ class GGUFInference:
                     print("Note: Image input provided but vision mode is disabled, ignoring image")
 
             # Run inference
-            print(f"Starting inference...")
+            print(f"Starting inference (Seed: {seed})...")
             inference_start = time.time()
 
-            response = self.model.create_chat_completion(
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-            )
+            # Prepare generation parameters
+            gen_params = {
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "top_p": top_p,
+                "top_k": top_k,
+            }
+
+            # Only add seed if it's set (> 0)
+            if seed > 0:
+                gen_params["seed"] = seed
+
+            response = self.model.create_chat_completion(**gen_params)
 
             # Extract response text
             response_text = response["choices"][0]["message"]["content"]
@@ -689,10 +699,10 @@ class GGUFInference:
                 print("Unloading model to free memory...")
                 self._free_memory()
 
-            return (response_text,)
+            return (response_text, seed)
 
         except Exception as e:
             import traceback
             error_msg = f"Inference failed: {str(e)}\n{traceback.format_exc()}"
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, seed)
