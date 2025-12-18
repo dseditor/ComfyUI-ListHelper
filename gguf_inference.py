@@ -19,10 +19,12 @@ SUGGESTED_MODELS = {
     "Download: Z-Image (Abliterated)": "https://huggingface.co/Mungert/Qwen3-4B-abliterated-GGUF/resolve/main/Qwen3-4B-abliterated-q4_k_m.gguf",
     "Download: Qwen": "https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
     "Download: Qwen (Abliterated)": "https://huggingface.co/mradermacher/Qwen2.5-VL-7B-Instruct-abliterated-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-abliterated.Q4_K_M.gguf",
+    "Download: QwenVL": "https://huggingface.co/mradermacher/Huihui-Qwen3-VL-4B-Instruct-abliterated-GGUF/resolve/main/Huihui-Qwen3-VL-4B-Instruct-abliterated.Q4_K_M.gguf",
 }
 
 SUGGESTED_MMPROJ = {
     "Download: mmproj": "https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/mmproj-F16.gguf",
+    "Download: QwenVL mmproj": "https://huggingface.co/noctrex/Huihui-Qwen3-VL-4B-Instruct-abliterated-i1-GGUF/resolve/main/mmproj-F16.gguf",
 }
 
 class GGUFInference:
@@ -35,6 +37,7 @@ class GGUFInference:
     def __init__(self):
         self.model = None
         self.current_model_path = None
+        self.current_mmproj_path = None
         self.clip_model_array = None
         self.llama_cpp_available = False
         self._check_llama_cpp()
@@ -250,16 +253,12 @@ class GGUFInference:
                     "default": False,
                     "tooltip": "Keep model in memory after inference"
                 }),
-                "enable_vision": ("BOOLEAN", {
-                    "default": False,
-                    "tooltip": "Enable vision model (requires mmproj file)"
-                }),
                 "mmproj_file": (mmproj_names, {
                     "default": mmproj_names[0] if mmproj_names else "No mmproj files",
-                    "tooltip": "Vision model mmproj file"
+                    "tooltip": "Vision model mmproj file (auto-enabled when image is provided and model is VL type)"
                 }),
                 "image": ("IMAGE", {
-                    "tooltip": "Input image for vision model"
+                    "tooltip": "Input image for vision model (auto-enables vision mode for VL models)"
                 }),
                 "auto_install_llama_cpp": ("BOOLEAN", {
                     "default": False,
@@ -280,6 +279,9 @@ class GGUFInference:
             if self.model is not None:
                 del self.model
                 self.model = None
+
+            self.current_model_path = None
+            self.current_mmproj_path = None
 
             if self.clip_model_array is not None:
                 del self.clip_model_array
@@ -359,14 +361,21 @@ class GGUFInference:
     def _load_model(self, model_path: str, enable_vision: bool = False, mmproj_path: Optional[str] = None) -> bool:
         """Load GGUF model with llama-cpp-python"""
         try:
-            # Check if model is already loaded
-            if self.model is not None and self.current_model_path == model_path:
+            # Check if model and mmproj are already loaded
+            if (self.model is not None and
+                self.current_model_path == model_path and
+                self.current_mmproj_path == mmproj_path):
                 print(f"Model already loaded: {os.path.basename(model_path)}")
+                if mmproj_path:
+                    print(f"  with mmproj: {os.path.basename(mmproj_path)}")
                 return True
 
-            # Unload previous model
+            # Unload previous model if model or mmproj changed
             if self.model is not None:
-                print("Unloading previous model...")
+                if self.current_model_path != model_path:
+                    print("Unloading previous model (model changed)...")
+                elif self.current_mmproj_path != mmproj_path:
+                    print("Unloading previous model (mmproj changed)...")
                 self._free_memory()
 
             if not self.llama_cpp_available:
@@ -412,6 +421,7 @@ class GGUFInference:
 
             self.model = Llama(**load_kwargs)
             self.current_model_path = model_path
+            self.current_mmproj_path = mmproj_path
 
             load_time = time.time() - load_start
             print(f"Model loaded successfully (Time: {load_time:.2f}s)")
@@ -423,6 +433,7 @@ class GGUFInference:
             traceback.print_exc()
             self.model = None
             self.current_model_path = None
+            self.current_mmproj_path = None
             return False
 
     def _remove_thinking_tags(self, text: str) -> str:
@@ -475,7 +486,6 @@ class GGUFInference:
         top_k: int,
         seed: int = 0,
         keep_model_loaded: bool = False,
-        enable_vision: bool = False,
         mmproj_file: str = "No mmproj files",
         image = None,
         auto_install_llama_cpp: bool = False,
@@ -547,20 +557,28 @@ class GGUFInference:
         # Check if this is a vision model
         is_vision_model = self._is_vision_model(model_path)
 
-        # Get mmproj path if vision is enabled and model supports it
+        # Auto-detect vision mode: enable if image is provided and model is VL type
+        enable_vision = False
+        if image is not None and is_vision_model:
+            enable_vision = True
+            print("=" * 70)
+            print("Auto-detected: Vision mode enabled")
+            print(f"  - Image input: Provided")
+            print(f"  - Model type: VL (Vision-Language)")
+            print("=" * 70)
+        elif image is not None and not is_vision_model:
+            print("=" * 70)
+            print("WARNING: Image provided but model is not a VL (Vision-Language) type.")
+            print(f"Model: {os.path.basename(model_path)}")
+            print("Vision mode will NOT be enabled. Image will be ignored.")
+            print("=" * 70)
+
+        # Get mmproj path if vision is enabled
         mmproj_path = None
         if enable_vision:
-            if not is_vision_model:
+            if mmproj_file == "No mmproj files":
                 print("=" * 70)
-                print("WARNING: Vision mode is enabled but model is not a vision model (VL).")
-                print(f"Model: {os.path.basename(model_path)}")
-                print("Ignoring vision mode and mmproj settings.")
-                print("Processing as text-only model.")
-                print("=" * 70)
-                enable_vision = False
-            elif mmproj_file == "No mmproj files":
-                print("=" * 70)
-                print("WARNING: Vision model detected but no mmproj file selected.")
+                print("WARNING: Vision mode detected but no mmproj file selected.")
                 print("Falling back to text-only mode.")
                 print("=" * 70)
                 enable_vision = False
@@ -654,7 +672,7 @@ class GGUFInference:
                     "role": "user",
                     "content": [
                         {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": image_url}}
+                        {"type": "image_url", "image_url": image_url}
                     ]
                 })
                 print("Using vision mode with image input")
