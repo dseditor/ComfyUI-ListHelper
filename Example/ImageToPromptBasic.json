@@ -1,0 +1,181 @@
+{
+  "id": "b7732cbc-2b9f-4728-9d23-4d56c42b3346",
+  "revision": 0,
+  "last_node_id": 4,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "PreviewAny",
+      "pos": [
+        411.28318354753156,
+        250.45440138740574
+      ],
+      "size": [
+        359.63752453769325,
+        288.60628338392723
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "PreviewAny",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadImage",
+      "pos": [
+        -320.4926962268179,
+        277.9684253481592
+      ],
+      "size": [
+        270,
+        314
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "LoadImage",
+        "widget_ue_connectable": {
+          "image": true,
+          "upload": true
+        }
+      },
+      "widgets_values": [
+        "initial_image (1).png",
+        "image"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "GGUFInference",
+      "pos": [
+        -20,
+        240
+      ],
+      "size": [
+        400,
+        426
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "used_seed",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "cfb18ce87bd2892444013efe1a715c6d0e341a1b",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "GGUFInference"
+      },
+      "widgets_values": [
+        "Download: QwenVL",
+        "",
+        "image_to_prompt.md",
+        "",
+        4096,
+        0.7,
+        0.9,
+        40,
+        839924795706985,
+        "randomize",
+        false,
+        "Download: QwenVL mmproj",
+        true
+      ]
+    }
+  ],
+  "links": [
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      4,
+      0,
+      2,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.3811149751044154,
+      "offset": [
+        207.05776152858684,
+        -140.88106625504534
+      ]
+    },
+    "workflowRendererVersion": "LG",
+    "ue_links": [],
+    "links_added_by_ue": [],
+    "frontendVersion": "1.34.9",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

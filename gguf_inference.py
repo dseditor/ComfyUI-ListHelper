@@ -8,6 +8,7 @@ import platform
 import base64
 import io
 import random
+import json
 import numpy as np
 import folder_paths
 import urllib.request
@@ -206,17 +207,26 @@ class GGUFInference:
         templates = cls._get_prompt_templates()
         template_options = ["Custom"] + templates
 
+        # Set default model to QwenVL download option if available
+        default_model = "Download: QwenVL" if "Download: QwenVL" in gguf_names else (gguf_names[0] if gguf_names else "No GGUF files found")
+
+        # Set default mmproj to QwenVL mmproj download option if available
+        default_mmproj = "Download: QwenVL mmproj" if "Download: QwenVL mmproj" in mmproj_names else (mmproj_names[0] if mmproj_names else "No mmproj files")
+
+        # Set default template to image_to_prompt.md if available, otherwise Custom
+        default_template = "image_to_prompt.md" if "image_to_prompt.md" in template_options else (template_options[0] if template_options else "Custom")
+
         return {
             "required": {
                 "model": (gguf_names, {
-                    "default": gguf_names[0] if gguf_names else "No GGUF files found"
+                    "default": default_model
                 }),
                 "prompt": ("STRING", {
                     "multiline": True,
-                    "default": "Hello, how are you?"
+                    "default": ""
                 }),
                 "prompt_template": (template_options, {
-                    "default": template_options[0] if template_options else "Custom"
+                    "default": default_template
                 }),
                 "system_prompt": ("STRING", {
                     "multiline": True,
@@ -254,15 +264,15 @@ class GGUFInference:
                     "tooltip": "Keep model in memory after inference"
                 }),
                 "mmproj_file": (mmproj_names, {
-                    "default": mmproj_names[0] if mmproj_names else "No mmproj files",
+                    "default": default_mmproj,
                     "tooltip": "Vision model mmproj file (auto-enabled when image is provided and model is VL type)"
                 }),
                 "image": ("IMAGE", {
                     "tooltip": "Input image for vision model (auto-enables vision mode for VL models)"
                 }),
                 "auto_install_llama_cpp": ("BOOLEAN", {
-                    "default": False,
-                    "tooltip": "Auto-install llama-cpp-python on Windows (requires restart)"
+                    "default": True,
+                    "tooltip": "Auto-install/repair llama-cpp-python (supports all platforms/CUDA versions, prioritizes Basic version for compatibility)"
                 }),
             }
         }
@@ -303,55 +313,348 @@ class GGUFInference:
         except Exception as e:
             print(f"Error freeing memory: {e}")
 
-    def _install_llama_cpp(self):
-        """Install llama-cpp-python from HuggingFace wheels (Windows only)"""
-        if platform.system() != "Windows":
-            print("=" * 70)
-            print("ERROR: Auto-installation is only supported on Windows")
-            print("Please install llama-cpp-python manually:")
-            print("  pip install llama-cpp-python")
-            print("=" * 70)
-            return False
+    def _detect_cuda_version(self):
+        """Detect CUDA version from system"""
+        try:
+            # Try to get CUDA version from torch
+            import torch
+            if torch.cuda.is_available():
+                cuda_version = torch.version.cuda
+                if cuda_version:
+                    # Convert 12.8 to 128, 12.1 to 121, etc.
+                    major, minor = cuda_version.split('.')
+                    return f"cu{major}{minor}"
+        except:
+            pass
 
-        # Get Python version
-        py_version = sys.version_info
-        py_ver_str = f"{py_version.major}{py_version.minor}"
+        # Try to get CUDA version from nvcc
+        try:
+            result = subprocess.run(['nvcc', '--version'],
+                                  capture_output=True,
+                                  text=True,
+                                  timeout=5)
+            if result.returncode == 0:
+                # Parse output like "Cuda compilation tools, release 12.8, V12.8.89"
+                match = re.search(r'release (\d+)\.(\d+)', result.stdout)
+                if match:
+                    major, minor = match.groups()
+                    return f"cu{major}{minor}"
+        except:
+            pass
 
-        # Map Python version to wheel URL
-        wheel_urls = {
-            "310": "https://huggingface.co/dseditor/pythonwheels/resolve/main/llama_cpp_python-0.3.16-cp310-cp310-win_amd64.whl",
-            "311": "https://huggingface.co/dseditor/pythonwheels/resolve/main/llama_cpp_python-0.3.16-cp311-cp311-win_amd64.whl",
-            "312": "https://huggingface.co/dseditor/pythonwheels/resolve/main/llama_cpp_python-0.3.16-cp312-cp312-win_amd64.whl",
-            "313": "https://huggingface.co/dseditor/pythonwheels/resolve/main/llama_cpp_python-0.3.16-cp313-cp313-win_amd64.whl",
+        return None
+
+    def _parse_release_info(self, release):
+        """Parse release tag to extract CUDA version, AVX support, and OS info
+
+        Example tag formats:
+        - v0.3.18-cu130-AVX2-win-20251220 -> CUDA 13.0, AVX2, Windows
+        - v0.3.18-cu128-AVX2-linux-20251220 -> CUDA 12.8, AVX2, Linux
+        - v0.3.16+cu128avx2 -> CUDA 12.8, AVX2
+        - v0.3.16+cu121 -> CUDA 12.1, no AVX
+        - v0.3.16+avx2 -> no CUDA, AVX2
+        - v0.3.16 -> no CUDA, no AVX
+        """
+        tag_name = release.get('tag_name', '')
+
+        # Extract CUDA version (e.g., cu128, cu121, cu130)
+        # Support both formats: -cu130- and +cu128
+        cuda_match = re.search(r'[-+]cu(\d+)', tag_name)
+        cuda_version = f"cu{cuda_match.group(1)}" if cuda_match else None
+
+        # Check for AVX2 support (case-insensitive)
+        has_avx2 = 'avx2' in tag_name.lower()
+
+        # Check for AVX (non-AVX2)
+        has_avx = 'avx' in tag_name.lower() and not has_avx2
+
+        return {
+            'tag_name': tag_name,
+            'cuda_version': cuda_version,
+            'has_avx2': has_avx2,
+            'has_avx': has_avx,
+            'release': release
         }
 
-        if py_ver_str not in wheel_urls:
-            print("=" * 70)
-            print(f"ERROR: Python {py_version.major}.{py_version.minor} is not supported")
-            print("Supported versions: 3.10, 3.11, 3.12, 3.13")
-            print("=" * 70)
-            return False
+    def _get_github_releases(self, max_releases=15):
+        """Get recent releases from GitHub"""
+        try:
+            api_url = f"https://api.github.com/repos/JamePeng/llama-cpp-python/releases?per_page={max_releases}"
 
-        wheel_url = wheel_urls[py_ver_str]
+            # Create request with User-Agent header
+            req = urllib.request.Request(api_url)
+            req.add_header('User-Agent', 'ComfyUI-GGUFInference/1.0')
+
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                return data  # Returns list of releases
+        except Exception as e:
+            print(f"Failed to fetch GitHub releases: {e}")
+            return None
+
+    def _find_matching_release(self, releases_list):
+        """Find matching release and wheel URL from releases list based on system configuration"""
+        if not releases_list:
+            return None
+
+        # Get system info
+        system = platform.system().lower()  # 'windows', 'linux', 'darwin'
+        py_version = sys.version_info
+        py_ver = f"cp{py_version.major}{py_version.minor}"
+
+        # Detect CUDA version
+        cuda_version = self._detect_cuda_version()
+
         print("=" * 70)
-        print(f"Installing llama-cpp-python for Python {py_version.major}.{py_version.minor}")
-        print(f"Wheel URL: {wheel_url}")
+        print("Detecting system configuration:")
+        print(f"  OS: {system}")
+        print(f"  Python: {py_version.major}.{py_version.minor} ({py_ver})")
+        print(f"  CUDA: {cuda_version if cuda_version else 'Not detected'}")
+        print("=" * 70)
+
+        # Determine platform suffix
+        if system == 'windows':
+            platform_suffix = 'win_amd64.whl'
+        elif system == 'linux':
+            platform_suffix = 'linux_x86_64.whl'
+        elif system == 'darwin':
+            # macOS - try both arm64 and x86_64
+            import platform as plt
+            machine = plt.machine().lower()
+            if 'arm' in machine or 'aarch64' in machine:
+                platform_suffix = 'macosx_11_0_arm64.whl'
+            else:
+                platform_suffix = 'macosx_10_9_x86_64.whl'
+        else:
+            print(f"Unsupported OS: {system}")
+            return None
+
+        # Build priority list for release matching
+        # Priority: CUDA Basic > CUDA+AVX2 > CPU Basic > CPU+AVX2
+        # Note: Basic versions are prioritized for better compatibility
+        #       AVX2 requires CPU support and may cause "Illegal Instruction" errors
+        print("=" * 70)
+        print("Searching through releases...")
+        print("=" * 70)
+
+        # Try each priority level
+        priority_filters = []
+
+        if cuda_version and system != 'darwin':
+            # Priority 1: CUDA exact version match (Basic - better compatibility)
+            priority_filters.append({
+                'name': f'CUDA {cuda_version} Basic (exact match)',
+                'cuda': cuda_version,
+                'avx2': False,
+                'exclude_avx2': True,  # Only match releases without AVX2
+                'allow_cuda_upgrade': False
+            })
+            # Priority 2: CUDA compatible version (Basic - allows newer CUDA)
+            # CUDA is forward compatible, e.g., cu130 wheels work on cu128 systems
+            priority_filters.append({
+                'name': f'CUDA {cuda_version}+ Basic (compatible)',
+                'cuda': cuda_version,
+                'avx2': False,
+                'exclude_avx2': True,
+                'allow_cuda_upgrade': True
+            })
+            # Priority 3: CUDA exact version match + AVX2 (requires AVX2 CPU support)
+            priority_filters.append({
+                'name': f'CUDA {cuda_version} + AVX2 (exact match)',
+                'cuda': cuda_version,
+                'avx2': True,
+                'exclude_avx2': False,
+                'allow_cuda_upgrade': False
+            })
+            # Priority 4: CUDA compatible version + AVX2
+            priority_filters.append({
+                'name': f'CUDA {cuda_version}+ AVX2 (compatible)',
+                'cuda': cuda_version,
+                'avx2': True,
+                'exclude_avx2': False,
+                'allow_cuda_upgrade': True
+            })
+
+        if system != 'darwin':
+            # Priority 3: CPU Basic version
+            priority_filters.append({
+                'name': 'CPU Basic',
+                'cuda': None,
+                'avx2': False,
+                'exclude_avx2': True
+            })
+            # Priority 4: CPU AVX2 version
+            priority_filters.append({
+                'name': 'CPU + AVX2',
+                'cuda': None,
+                'avx2': True,
+                'exclude_avx2': False
+            })
+        else:
+            # macOS: no AVX2 priority needed
+            priority_filters.append({
+                'name': 'CPU Basic',
+                'cuda': None,
+                'avx2': False,
+                'exclude_avx2': False
+            })
+
+        # Search through releases with priority
+        for priority in priority_filters:
+            print(f"Trying priority: {priority['name']}")
+
+            for release in releases_list:
+                release_info = self._parse_release_info(release)
+
+                # Check if this release matches current priority
+                if priority.get('allow_cuda_upgrade', False):
+                    # Allow CUDA version upgrade (e.g., cu130 wheel on cu128 system)
+                    # Extract numeric CUDA version for comparison
+                    if priority['cuda'] and release_info['cuda_version']:
+                        try:
+                            required_cuda = int(priority['cuda'][2:])  # cu128 -> 128
+                            release_cuda = int(release_info['cuda_version'][2:])  # cu130 -> 130
+                            # Match if release CUDA >= required CUDA (forward compatibility)
+                            cuda_match = release_cuda >= required_cuda
+                        except:
+                            cuda_match = False
+                    else:
+                        cuda_match = (priority['cuda'] is None and release_info['cuda_version'] is None)
+                else:
+                    # Exact CUDA version match
+                    cuda_match = (priority['cuda'] is None and release_info['cuda_version'] is None) or \
+                                (priority['cuda'] == release_info['cuda_version'])
+
+                # Handle exclude_avx2 flag
+                if priority.get('exclude_avx2', False):
+                    # Only match if release does NOT have AVX2
+                    avx2_match = not release_info['has_avx2']
+                else:
+                    # Match if either AVX2 is not required or release has AVX2
+                    avx2_match = (not priority['avx2']) or release_info['has_avx2']
+
+                if cuda_match and avx2_match:
+                    # Found matching release, now find wheel for this Python version
+                    print(f"  Found matching release: {release_info['tag_name']}")
+
+                    # Search for wheel with matching Python version
+                    for asset in release.get('assets', []):
+                        name = asset.get('name', '')
+                        download_url = asset.get('browser_download_url', '')
+
+                        if not name.endswith('.whl'):
+                            continue
+
+                        # Check if wheel matches Python version and platform
+                        if f"-{py_ver}-{py_ver}-" in name and platform_suffix in name:
+                            print("=" * 70)
+                            print(f"SUCCESS: Found matching wheel!")
+                            print(f"  Release: {release_info['tag_name']}")
+                            print(f"  Wheel: {name}")
+                            print(f"  Download URL: {download_url}")
+                            print("=" * 70)
+                            return download_url
+
+                    # Release matched but no wheel for this Python version
+                    print(f"    No wheel found for Python {py_ver} in this release")
+
+        # No matching release found
+        print("=" * 70)
+        print("No matching release found for your system configuration")
+        print("Available releases:")
+        for release in releases_list[:5]:  # Show first 5 releases
+            release_info = self._parse_release_info(release)
+            print(f"  - {release_info['tag_name']} (CUDA: {release_info['cuda_version']}, AVX2: {release_info['has_avx2']})")
+        print("=" * 70)
+
+        return None
+
+    def _uninstall_llama_cpp(self):
+        """Uninstall existing llama-cpp-python"""
+        print("=" * 70)
+        print("Uninstalling existing llama-cpp-python...")
         print("=" * 70)
 
         try:
+            # Use pip uninstall with -y flag to auto-confirm
+            result = subprocess.run([
+                sys.executable, "-m", "pip", "uninstall", "llama-cpp-python", "-y"
+            ], capture_output=True, text=True)
+
+            if result.returncode == 0:
+                print("=" * 70)
+                print("SUCCESS: llama-cpp-python uninstalled successfully")
+                print("=" * 70)
+                return True
+            else:
+                print("=" * 70)
+                print(f"Uninstall completed with warnings:")
+                print(result.stdout)
+                print(result.stderr)
+                print("=" * 70)
+                return True  # Still consider it successful
+
+        except Exception as e:
+            print("=" * 70)
+            print(f"ERROR: Failed to uninstall llama-cpp-python: {e}")
+            print("Please manually uninstall using: pip uninstall llama-cpp-python")
+            print("=" * 70)
+            return False
+
+    def _install_llama_cpp(self):
+        """Auto-installation: Auto-detect system and download from GitHub releases
+
+        Supports all platforms (Windows/Linux/macOS) and CUDA versions.
+        Prioritizes Basic (non-AVX2) versions for better compatibility.
+        """
+        print("=" * 70)
+        print("Auto-Installing llama-cpp-python")
+        print("Detecting system configuration and searching through releases...")
+        print("=" * 70)
+
+        # Get recent releases (up to 15)
+        releases_list = self._get_github_releases(max_releases=15)
+        if not releases_list:
+            print("=" * 70)
+            print("ERROR: Failed to fetch releases from GitHub")
+            print("Please visit: https://github.com/JamePeng/llama-cpp-python/releases")
+            print("=" * 70)
+            return False
+
+        # Find matching release and wheel
+        wheel_url = self._find_matching_release(releases_list)
+        if not wheel_url:
+            print("=" * 70)
+            print("ERROR: Could not find a matching wheel for your system")
+            print("Please visit: https://github.com/JamePeng/llama-cpp-python/releases")
+            print("And manually download the appropriate wheel for your system")
+            print("=" * 70)
+            return False
+
+        # Download and install
+        try:
+            print("=" * 70)
+            print("Installing llama-cpp-python...")
+            print("=" * 70)
+
             subprocess.check_call([
                 sys.executable, "-m", "pip", "install", wheel_url
             ])
+
             print("=" * 70)
             print("SUCCESS: llama-cpp-python installed successfully")
             print("IMPORTANT: Please restart ComfyUI to use the GGUF node")
             print("=" * 70)
             return True
+
         except Exception as e:
             print("=" * 70)
             print(f"ERROR: Failed to install llama-cpp-python: {e}")
+            print("")
+            print("Please visit: https://github.com/JamePeng/llama-cpp-python/releases")
             print("=" * 70)
             return False
+
 
     def _is_vision_model(self, model_path: str) -> bool:
         """Check if model is a vision model based on filename"""
@@ -488,20 +791,20 @@ class GGUFInference:
         keep_model_loaded: bool = False,
         mmproj_file: str = "No mmproj files",
         image = None,
-        auto_install_llama_cpp: bool = False,
+        auto_install_llama_cpp: bool = True,
     ) -> Tuple[str, int]:
         """Execute GGUF model inference"""
 
         # Check if llama-cpp-python is available
         if not self.llama_cpp_available:
             if auto_install_llama_cpp:
-                print("llama-cpp-python not found, attempting installation...")
+                print("llama-cpp-python not found, attempting auto-installation...")
                 if self._install_llama_cpp():
                     error_msg = "llama-cpp-python installed successfully!\n\nPlease restart ComfyUI to use the GGUF node."
                 else:
-                    error_msg = "Failed to install llama-cpp-python.\n\nPlease install manually:\n  pip install llama-cpp-python"
+                    error_msg = "Failed to install llama-cpp-python.\n\nPlease visit: https://github.com/JamePeng/llama-cpp-python/releases"
             else:
-                error_msg = "ERROR: llama-cpp-python is not installed.\n\nPlease either:\n1. Enable 'auto_install_llama_cpp' option (Windows only)\n2. Install manually: pip install llama-cpp-python"
+                error_msg = "ERROR: llama-cpp-python is not installed.\n\nPlease either:\n1. Enable 'auto_install_llama_cpp' option (recommended)\n2. Install manually: pip install llama-cpp-python"
             print(error_msg)
             return (error_msg, seed)
 
@@ -640,7 +943,30 @@ class GGUFInference:
 
         # Load model
         if not self._load_model(model_path, enable_vision, mmproj_path):
-            error_msg = "Error: Model loading failed.\nPlease check if llama-cpp-python is properly installed."
+            # Model loading failed
+            if auto_install_llama_cpp:
+                print("=" * 70)
+                print("ERROR: Model loading failed!")
+                print("This may indicate llama-cpp-python is incompatible or corrupted.")
+                print("Attempting to uninstall and reinstall llama-cpp-python...")
+                print("=" * 70)
+
+                # Try to uninstall and reinstall
+                if self._uninstall_llama_cpp():
+                    print("\nNow attempting to install compatible version...")
+                    if self._install_llama_cpp():
+                        error_msg = "llama-cpp-python has been reinstalled!\n\nIMPORTANT: Please restart ComfyUI to use the new version."
+                        print("=" * 70)
+                        print(error_msg)
+                        print("=" * 70)
+                        return (error_msg, seed)
+                    else:
+                        error_msg = "Failed to reinstall llama-cpp-python.\n\nPlease visit: https://github.com/JamePeng/llama-cpp-python/releases\nAnd manually install the appropriate version for your system."
+                else:
+                    error_msg = "Failed to uninstall llama-cpp-python.\n\nPlease manually uninstall using: pip uninstall llama-cpp-python\nThen enable auto_install_llama_cpp option to reinstall."
+            else:
+                error_msg = "Error: Model loading failed.\n\nThis may indicate llama-cpp-python is incompatible.\nPlease enable 'auto_install_llama_cpp' to automatically fix this,\nor manually reinstall llama-cpp-python."
+
             print(error_msg)
             return (error_msg, seed)
 
