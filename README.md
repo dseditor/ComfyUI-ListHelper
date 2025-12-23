@@ -16,6 +16,7 @@ The **ListHelper** collection is a comprehensive set of custom nodes for ComfyUI
 2. [NumberListGenerator](#numberlistgenerator-node)
 3. [PromptSplitByDelimiter](#promptsplitbydelimiter-node)
 4. [Qwen_TE_LLM](#qwen-node) - AI Photo Prompt Optimizer
+5. [GGUFInference](#ggufinference-node) - GGUF Model Inference with llama-cpp-python
 
 ---
 
@@ -393,6 +394,167 @@ This tests model loading, memory management, and inference capabilities.
 
 ---
 
+## GGUFInference Node
+
+### Overview
+
+The **GGUFInference** node is a powerful GGUF model inference node that integrates llama-cpp-python for running quantized language models. It supports both text-only and vision-language models with automatic model detection and intelligent memory management.
+
+### Features
+
+- **Automatic Model Detection**: Scans `text_encoders` and `clip` folders for GGUF model files
+- **Vision Model Support**: Handles VL (Vision-Language) models with mmproj files
+- **Auto-Installation**: Automatically installs llama-cpp-python on Windows (CUDA 12.8 compatible)
+  - **Platform**: Currently Windows only
+  - **CUDA Version**: Optimized for CUDA 12.8
+  - **Python Support**: 3.10, 3.11, 3.12, 3.13
+- **Model Download**: Built-in suggested models with one-click download from HuggingFace
+- **Template System**: Load prompt templates from `Prompt` folder or use custom prompts
+- **Memory Management**: Option to keep model loaded or unload after inference
+- **Seed Control**: Reproducible generation with optional seed parameter
+
+### Requirements
+
+- **Operating System**: Windows (for auto-installation feature)
+- **CUDA Version**: 12.8 (for auto-installation)
+- **Python Version**: 3.10, 3.11, 3.12, or 3.13
+- **Model Files**: GGUF format models in `text_encoders` or `clip` folders
+- **Python Library**: llama-cpp-python (auto-installed on Windows)
+
+### Auto-Installation Feature
+
+The node includes an **automatic installation system for llama-cpp-python**:
+
+- **Trigger**: Enable the `auto_install_llama_cpp` parameter
+- **Platform Support**: Windows only (manual installation required for other platforms)
+- **CUDA Support**: Pre-built wheels for CUDA 12.8
+- **Process**: Downloads and installs the appropriate wheel from HuggingFace
+- **Restart Required**: After installation, restart ComfyUI to activate
+
+### Parameters
+
+**Required Inputs:**
+
+| Parameter | Type | Default | Range | Description |
+|-----------|------|---------|-------|-------------|
+| `model` | COMBO | - | - | GGUF model file (auto-detected or download option) |
+| `prompt` | STRING | "Hello, how are you?" | - | Input text prompt |
+| `prompt_template` | COMBO | "Custom" | - | Template from Prompt folder or Custom |
+| `system_prompt` | STRING | "" | - | System prompt (used when template is Custom) |
+| `max_tokens` | INT | 4096 | 1-8192 | Maximum generation length |
+| `temperature` | FLOAT | 0.7 | 0.0-2.0 | Sampling temperature |
+| `top_p` | FLOAT | 0.9 | 0.0-1.0 | Nucleus sampling threshold |
+| `top_k` | INT | 40 | 0-100 | Top-k sampling parameter |
+
+**Optional Inputs:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `seed` | INT | 0 | Random seed for reproducible results |
+| `keep_model_loaded` | BOOLEAN | False | Keep model in memory after inference |
+| `mmproj_file` | COMBO | "No mmproj files" | Vision model mmproj file |
+| `image` | IMAGE | - | Input image for vision models |
+| `auto_install_llama_cpp` | BOOLEAN | False | Auto-install llama-cpp-python (Windows only) |
+
+**Outputs:**
+
+- **text**: Generated text output
+- **used_seed**: The seed value used for generation
+
+### Supported Models
+
+The node includes suggested models with direct download:
+
+**Text Models:**
+- Qwen3-4B (Z-Image)
+- Qwen3-4B Abliterated
+
+**Vision-Language Models:**
+- Qwen2.5-VL-7B-Instruct
+- Qwen2.5-VL-7B-Instruct Abliterated
+- Huihui-Qwen3-VL-4B-Instruct Abliterated
+
+**MMProj Files:**
+- Qwen2.5-VL mmproj
+- QwenVL mmproj
+
+### Usage Examples
+
+#### Example 1: Text Generation with Auto-Installation
+```
+1. Enable "auto_install_llama_cpp" checkbox
+2. Run the node once (will install llama-cpp-python)
+3. Restart ComfyUI
+4. Select a model from dropdown or use "Download: Z-Image"
+5. Enter your prompt
+6. Generate!
+```
+
+#### Example 2: Vision Model Inference
+```
+Model: Download: Qwen (VL model)
+MMProj File: Download: mmproj
+Image: [Connect your IMAGE input]
+Prompt: "Describe this image in detail"
+Output: Detailed description of the input image
+```
+
+#### Example 3: Using Templates
+```
+Model: Qwen3-4B
+Prompt Template: [Select from Prompt folder]
+User Prompt: "A sunset over mountains"
+Output: Processed text based on template instructions
+```
+
+### Auto-Installation Details
+
+**Windows + CUDA 12.8:**
+- Automatically downloads pre-compiled wheels from HuggingFace
+- Supports Python 3.10, 3.11, 3.12, 3.13
+- No manual compilation required
+- CUDA-accelerated inference ready
+
+**Other Platforms:**
+- Manual installation required: `pip install llama-cpp-python`
+- The node will display installation instructions if llama-cpp-python is not found
+
+### Vision Model Support
+
+The node **automatically detects VL (Vision-Language) models** by filename:
+- Models with "vl" in the filename are treated as vision models
+- Vision mode is enabled when both image input and mmproj file are provided
+- Automatically falls back to text-only mode if vision requirements aren't met
+
+### Performance Notes
+
+- **GPU Acceleration**: Automatically uses GPU if CUDA is available (`n_gpu_layers=-1`)
+- **Context Size**: 8192 tokens context window
+- **Memory Management**: Option to keep model loaded for faster subsequent inferences
+- **Thinking Tag Removal**: Automatically strips `<think>...</think>` tags from output
+
+### Troubleshooting
+
+**llama-cpp-python not installed:**
+- Enable `auto_install_llama_cpp` on Windows
+- Or manually install: `pip install llama-cpp-python`
+
+**Model not found:**
+- Place GGUF files in `models/text_encoders/` or `models/clip/`
+- Or use the built-in download options
+
+**Vision mode not working:**
+- Ensure model filename contains "vl"
+- Select appropriate mmproj file
+- Connect IMAGE input
+
+**Auto-installation failed:**
+- Check Python version (must be 3.10-3.13)
+- Check internet connection for wheel download
+- Verify Windows operating system
+
+---
+
 ## 中文版本
 
 ### 概述
@@ -405,9 +567,10 @@ This tests model loading, memory management, and inference capabilities.
 2. [NumberListGenerator 數字列表生成器](#numberlistgenerator-數字列表生成節點)
 3. [PromptSplitByDelimiter 提示分割器](#promptsplitbydelimiter-提示分割節點)
 4. [Qwen_TE_LLM AI照片提示詞優化器](#Qwen_TE_LLM-ai照片提示詞優化器)
-5. [AudioToFrameCount](#AudioToFrameCount)
-6. [AudioSplitToList](#AudioSplitToList)
-7. [CeilDivide](#CeilDivide)
+5. [GGUFInference GGUF模型推理](#ggufinference-gguf模型推理節點)
+6. [AudioToFrameCount](#AudioToFrameCount)
+7. [AudioSplitToList](#AudioSplitToList)
+8. [CeilDivide](#CeilDivide)
 
 ---
 
@@ -770,6 +933,167 @@ python test_qwen_node.py
 ```
 
 此腳本測試模型載入、記憶體管理和推理能力。
+
+---
+
+## GGUFInference GGUF模型推理節點
+
+### 概述
+
+**GGUFInference** 節點是一個強大的 GGUF 模型推理節點,整合 llama-cpp-python 以運行量化語言模型。支援純文本和視覺語言模型,具備自動模型檢測和智能記憶體管理功能。
+
+### 功能特色
+
+- **自動模型檢測**: 掃描 `text_encoders` 和 `clip` 資料夾尋找 GGUF 模型檔案
+- **視覺模型支援**: 處理 VL (Vision-Language) 模型與 mmproj 檔案
+- **自動安裝**: 在 Windows 上自動安裝 llama-cpp-python (支援 CUDA 12.8)
+  - **平台**: 目前僅支援 Windows
+  - **CUDA 版本**: 針對 CUDA 12.8 最佳化
+  - **Python 支援**: 3.10, 3.11, 3.12, 3.13
+- **模型下載**: 內建建議模型,可從 HuggingFace 一鍵下載
+- **模板系統**: 從 `Prompt` 資料夾載入提示詞模板或使用自訂提示詞
+- **記憶體管理**: 可選擇保持模型載入或推理後卸載
+- **種子控制**: 可選種子參數確保生成可重現
+
+### 需求
+
+- **作業系統**: Windows (自動安裝功能)
+- **CUDA 版本**: 12.8 (自動安裝)
+- **Python 版本**: 3.10, 3.11, 3.12 或 3.13
+- **模型檔案**: GGUF 格式模型放在 `text_encoders` 或 `clip` 資料夾
+- **Python 函式庫**: llama-cpp-python (Windows 上自動安裝)
+
+### 自動安裝功能
+
+節點包含 **llama-cpp-python 自動安裝系統**:
+
+- **觸發**: 啟用 `auto_install_llama_cpp` 參數
+- **平台支援**: 僅 Windows (其他平台需手動安裝)
+- **CUDA 支援**: CUDA 12.8 預編譯 wheels
+- **流程**: 從 HuggingFace 下載並安裝適當的 wheel
+- **需要重啟**: 安裝後需重啟 ComfyUI 以啟用
+
+### 參數說明
+
+**必需輸入:**
+
+| 參數 | 類型 | 預設值 | 範圍 | 說明 |
+|------|------|--------|------|------|
+| `model` | COMBO | - | - | GGUF 模型檔案 (自動檢測或下載選項) |
+| `prompt` | STRING | "Hello, how are you?" | - | 輸入文字提示詞 |
+| `prompt_template` | COMBO | "Custom" | - | Prompt 資料夾的模板或 Custom |
+| `system_prompt` | STRING | "" | - | 系統提示詞 (模板為 Custom 時使用) |
+| `max_tokens` | INT | 4096 | 1-8192 | 最大生成長度 |
+| `temperature` | FLOAT | 0.7 | 0.0-2.0 | 取樣溫度 |
+| `top_p` | FLOAT | 0.9 | 0.0-1.0 | Nucleus 取樣閾值 |
+| `top_k` | INT | 40 | 0-100 | Top-k 取樣參數 |
+
+**可選輸入:**
+
+| 參數 | 類型 | 預設值 | 說明 |
+|------|------|--------|------|
+| `seed` | INT | 0 | 可重現結果的隨機種子 |
+| `keep_model_loaded` | BOOLEAN | False | 推理後保持模型在記憶體中 |
+| `mmproj_file` | COMBO | "No mmproj files" | 視覺模型 mmproj 檔案 |
+| `image` | IMAGE | - | 視覺模型的輸入圖片 |
+| `auto_install_llama_cpp` | BOOLEAN | False | 自動安裝 llama-cpp-python (僅 Windows) |
+
+**輸出:**
+
+- **text**: 生成的文字輸出
+- **used_seed**: 使用的種子值
+
+### 支援的模型
+
+節點包含建議模型可直接下載:
+
+**文本模型:**
+- Qwen3-4B (Z-Image)
+- Qwen3-4B Abliterated
+
+**視覺語言模型:**
+- Qwen2.5-VL-7B-Instruct
+- Qwen2.5-VL-7B-Instruct Abliterated
+- Huihui-Qwen3-VL-4B-Instruct Abliterated
+
+**MMProj 檔案:**
+- Qwen2.5-VL mmproj
+- QwenVL mmproj
+
+### 使用範例
+
+#### 範例 1: 使用自動安裝進行文字生成
+```
+1. 啟用 "auto_install_llama_cpp" 選項
+2. 執行節點一次 (將安裝 llama-cpp-python)
+3. 重啟 ComfyUI
+4. 從下拉選單選擇模型或使用 "Download: Z-Image"
+5. 輸入您的提示詞
+6. 開始生成!
+```
+
+#### 範例 2: 視覺模型推理
+```
+模型: Download: Qwen (VL 模型)
+MMProj 檔案: Download: mmproj
+圖片: [連接您的 IMAGE 輸入]
+提示詞: "詳細描述這張圖片"
+輸出: 輸入圖片的詳細描述
+```
+
+#### 範例 3: 使用模板
+```
+模型: Qwen3-4B
+提示詞模板: [從 Prompt 資料夾選擇]
+使用者提示詞: "山上的日落"
+輸出: 根據模板指示處理的文字
+```
+
+### 自動安裝詳情
+
+**Windows + CUDA 12.8:**
+- 自動從 HuggingFace 下載預編譯 wheels
+- 支援 Python 3.10, 3.11, 3.12, 3.13
+- 無需手動編譯
+- CUDA 加速推理已就緒
+
+**其他平台:**
+- 需要手動安裝: `pip install llama-cpp-python`
+- 若未找到 llama-cpp-python,節點會顯示安裝說明
+
+### 視覺模型支援
+
+節點 **自動檢測 VL (Vision-Language) 模型** 透過檔名:
+- 檔名中包含 "vl" 的模型被視為視覺模型
+- 當提供圖片輸入和 mmproj 檔案時啟用視覺模式
+- 若未滿足視覺需求會自動回退到純文本模式
+
+### 效能說明
+
+- **GPU 加速**: 若 CUDA 可用會自動使用 GPU (`n_gpu_layers=-1`)
+- **上下文大小**: 8192 tokens 上下文視窗
+- **記憶體管理**: 可選擇保持模型載入以加快後續推理
+- **思考標籤移除**: 自動移除輸出中的 `<think>...</think>` 標籤
+
+### 疑難排解
+
+**llama-cpp-python 未安裝:**
+- 在 Windows 上啟用 `auto_install_llama_cpp`
+- 或手動安裝: `pip install llama-cpp-python`
+
+**找不到模型:**
+- 將 GGUF 檔案放在 `models/text_encoders/` 或 `models/clip/`
+- 或使用內建下載選項
+
+**視覺模式無法運作:**
+- 確保模型檔名包含 "vl"
+- 選擇適當的 mmproj 檔案
+- 連接 IMAGE 輸入
+
+**自動安裝失敗:**
+- 檢查 Python 版本 (必須是 3.10-3.13)
+- 檢查網路連線以下載 wheel
+- 確認 Windows 作業系統
 
 ---
 
