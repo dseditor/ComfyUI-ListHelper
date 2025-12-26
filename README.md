@@ -17,6 +17,7 @@ The **ListHelper** collection is a comprehensive set of custom nodes for ComfyUI
 3. [PromptSplitByDelimiter](#promptsplitbydelimiter-node)
 4. [Qwen_TE_LLM](#qwen-node) - AI Photo Prompt Optimizer
 5. [GGUFInference](#ggufinference-node) - GGUF Model Inference with llama-cpp-python
+6. [BatchToPSD](#batchtopsd-node) - Convert Batch Images to Multi-Layer PSD
 
 ---
 
@@ -555,6 +556,158 @@ The node **automatically detects VL (Vision-Language) models** by filename:
 
 ---
 
+## BatchToPSD Node
+
+### Overview
+
+The **BatchToPSD** node converts a batch of images into a multi-layer PSD (Photoshop Document) file. It automatically handles transparency, supports RGBA mode, and includes auto-installation of the required `psd-tools` package.
+
+### Features
+
+- **Auto-Install Dependencies**: Automatically installs `psd-tools` package on first use
+- **Multi-Layer Support**: Converts batch images to individual PSD layers
+- **Transparency Preservation**: Automatically detects and preserves alpha channels
+- **Smart Mode Detection**: Uses RGBA mode when transparency is detected, RGB otherwise
+- **Layer Control**: Optional layer order reversal
+- **First Image Skip**: Skips the first image in batch (typically the merged preview)
+
+### Requirements
+
+- **Python Package**: psd-tools (auto-installed on first use)
+- **Image Format**: Supports RGB and RGBA images
+- **Input**: Batch of at least 2 images (first image is skipped)
+
+### Auto-Installation
+
+The node includes an **automatic installation system for psd-tools**:
+
+- **Trigger**: Automatically triggers when psd-tools is not found
+- **Process**: Installs psd-tools using pip
+- **Restart Required**: After installation, restart ComfyUI to activate the package
+- **First Use**: The first run will install the package and display a success message
+
+### Parameters
+
+**Required Inputs:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `images` | IMAGE | - | Batch of images to convert (minimum 2 images) |
+| `filename_prefix` | STRING | "ComfyUI_PSD" | Prefix for output PSD filename |
+
+**Optional Inputs:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `reverse_layer_order` | BOOLEAN | False | Reverse layer order (bottom to top) |
+
+**Outputs:**
+
+- **message**: Status message with file path or installation instructions
+
+### Usage Examples
+
+#### Example 1: First Time Use (Auto-Installation)
+```
+1. Connect batch images to BatchToPSD node
+2. Run the node (will auto-install psd-tools)
+3. See success message: "psd-tools package has been installed successfully. Please RESTART ComfyUI"
+4. Restart ComfyUI
+5. Run the node again to create PSD file
+```
+
+#### Example 2: Normal PSD Creation
+```
+Input: Batch of 5 images [merged, layer1, layer2, layer3, layer4]
+Output: PSD file with 4 layers (first image skipped)
+Layers: Layer_1, Layer_2, Layer_3, Layer_4
+```
+
+#### Example 3: With Transparency
+```
+Input: Batch of RGBA images with transparency
+Auto-Detection: Node detects alpha channels
+PSD Mode: RGBA (preserves transparency)
+Output: PSD file with transparent layers
+```
+
+#### Example 4: Reverse Layer Order
+```
+Input: Batch of 4 images
+Reverse Layer Order: True
+Output: Layers arranged from bottom to top (Layer_3, Layer_2, Layer_1)
+```
+
+### How It Works
+
+1. **Package Check**: Checks if psd-tools is installed
+2. **Auto-Install**: If not found, automatically installs psd-tools
+3. **Restart Prompt**: Prompts user to restart ComfyUI after installation
+4. **Image Processing**:
+   - Skips first image in batch
+   - Converts remaining images to PIL format
+   - Detects alpha channels in any layer
+5. **Mode Selection**:
+   - Uses RGBA mode if any layer has transparency
+   - Uses RGB mode otherwise
+6. **PSD Creation**:
+   - Creates PSD document with appropriate mode
+   - Adds each image as a separate layer
+   - Names layers sequentially (Layer_1, Layer_2, etc.)
+7. **File Output**: Saves PSD to ComfyUI output directory with timestamp
+
+### Output Location
+
+- **Directory**: ComfyUI output folder
+- **Filename Format**: `{prefix}_{timestamp}.psd`
+- **Example**: `ComfyUI_PSD_20250326_143022.psd`
+
+### Technical Details
+
+**Transparency Handling:**
+- Automatically detects RGBA images
+- Creates PSD in RGBA mode to preserve transparency
+- Prevents transparency loss during layer creation
+- Matches Photoshop's behavior for transparent layers
+
+**Image Conversion:**
+- Converts torch tensors [H, W, C] with values [0, 1]
+- Converts to uint8 [0, 255] for PIL compatibility
+- Preserves color accuracy and transparency
+
+**Layer Naming:**
+- Sequential naming: Layer_1, Layer_2, Layer_3, etc.
+- Can be renamed in Photoshop after creation
+
+### Troubleshooting
+
+**psd-tools installation failed:**
+- Check internet connection
+- Manually install: `pip install psd-tools`
+- Verify pip is up to date: `pip install --upgrade pip`
+
+**First image is missing in PSD:**
+- This is intentional - first image in batch is skipped (usually the merged preview)
+- Ensure your batch has at least 2 images
+
+**Transparency not preserved:**
+- Check if input images have alpha channel (RGBA mode)
+- Node automatically uses RGBA mode when alpha is detected
+
+**Cannot open PSD in Photoshop:**
+- Ensure psd-tools installed successfully
+- Check output file exists in ComfyUI output directory
+- Try updating Photoshop to latest version
+
+### Compatibility
+
+- **Photoshop**: Compatible with Adobe Photoshop CS6 and later
+- **Other Software**: Works with any software that supports PSD format (GIMP, Affinity Photo, etc.)
+- **Color Modes**: RGB and RGBA
+- **Bit Depth**: 8-bit per channel
+
+---
+
 ## 中文版本
 
 ### 概述
@@ -568,9 +721,10 @@ The node **automatically detects VL (Vision-Language) models** by filename:
 3. [PromptSplitByDelimiter 提示分割器](#promptsplitbydelimiter-提示分割節點)
 4. [Qwen_TE_LLM AI照片提示詞優化器](#Qwen_TE_LLM-ai照片提示詞優化器)
 5. [GGUFInference GGUF模型推理](#ggufinference-gguf模型推理節點)
-6. [AudioToFrameCount](#AudioToFrameCount)
-7. [AudioSplitToList](#AudioSplitToList)
-8. [CeilDivide](#CeilDivide)
+6. [BatchToPSD 批次圖片轉PSD](#batchtopsd-批次圖片轉psd節點)
+7. [AudioToFrameCount](#AudioToFrameCount)
+8. [AudioSplitToList](#AudioSplitToList)
+9. [CeilDivide](#CeilDivide)
 
 ---
 
@@ -1094,6 +1248,158 @@ MMProj 檔案: Download: mmproj
 - 檢查 Python 版本 (必須是 3.10-3.13)
 - 檢查網路連線以下載 wheel
 - 確認 Windows 作業系統
+
+---
+
+## BatchToPSD 批次圖片轉PSD節點
+
+### 概述
+
+**BatchToPSD** 節點將批次圖片轉換為多圖層 PSD (Photoshop Document) 檔案。自動處理透明度,支援 RGBA 模式,並包含自動安裝所需 `psd-tools` 套件的功能。
+
+### 功能特色
+
+- **自動安裝依賴套件**: 首次使用時自動安裝 `psd-tools` 套件
+- **多圖層支援**: 將批次圖片轉換為獨立的 PSD 圖層
+- **透明度保留**: 自動偵測並保留 alpha 通道
+- **智能模式偵測**: 偵測到透明度時使用 RGBA 模式,否則使用 RGB
+- **圖層控制**: 可選的圖層順序反轉
+- **跳過第一張圖片**: 跳過批次中的第一張圖片 (通常是合併預覽)
+
+### 需求
+
+- **Python 套件**: psd-tools (首次使用時自動安裝)
+- **圖片格式**: 支援 RGB 和 RGBA 圖片
+- **輸入**: 至少 2 張圖片的批次 (第一張圖片會被跳過)
+
+### 自動安裝
+
+節點包含 **psd-tools 自動安裝系統**:
+
+- **觸發**: 未找到 psd-tools 時自動觸發
+- **流程**: 使用 pip 安裝 psd-tools
+- **需要重啟**: 安裝後需重啟 ComfyUI 以啟用套件
+- **首次使用**: 首次執行會安裝套件並顯示成功訊息
+
+### 參數說明
+
+**必需輸入:**
+
+| 參數 | 類型 | 預設值 | 說明 |
+|------|------|--------|------|
+| `images` | IMAGE | - | 要轉換的批次圖片 (最少 2 張) |
+| `filename_prefix` | STRING | "ComfyUI_PSD" | 輸出 PSD 檔案名稱前綴 |
+
+**可選輸入:**
+
+| 參數 | 類型 | 預設值 | 說明 |
+|------|------|--------|------|
+| `reverse_layer_order` | BOOLEAN | False | 反轉圖層順序 (由下往上) |
+
+**輸出:**
+
+- **message**: 狀態訊息,包含檔案路徑或安裝說明
+
+### 使用範例
+
+#### 範例 1: 首次使用 (自動安裝)
+```
+1. 將批次圖片連接到 BatchToPSD 節點
+2. 執行節點 (會自動安裝 psd-tools)
+3. 看到成功訊息: "psd-tools 套件已成功安裝。請重啟 ComfyUI"
+4. 重啟 ComfyUI
+5. 再次執行節點以建立 PSD 檔案
+```
+
+#### 範例 2: 正常 PSD 建立
+```
+輸入: 5 張圖片的批次 [合併圖, 圖層1, 圖層2, 圖層3, 圖層4]
+輸出: 包含 4 個圖層的 PSD 檔案 (第一張圖片被跳過)
+圖層: Layer_1, Layer_2, Layer_3, Layer_4
+```
+
+#### 範例 3: 帶透明度的圖片
+```
+輸入: 帶透明度的 RGBA 圖片批次
+自動偵測: 節點偵測到 alpha 通道
+PSD 模式: RGBA (保留透明度)
+輸出: 包含透明圖層的 PSD 檔案
+```
+
+#### 範例 4: 反轉圖層順序
+```
+輸入: 4 張圖片的批次
+反轉圖層順序: True
+輸出: 圖層由下往上排列 (Layer_3, Layer_2, Layer_1)
+```
+
+### 運作方式
+
+1. **套件檢查**: 檢查是否安裝 psd-tools
+2. **自動安裝**: 若未找到,自動安裝 psd-tools
+3. **重啟提示**: 安裝後提示使用者重啟 ComfyUI
+4. **圖片處理**:
+   - 跳過批次中的第一張圖片
+   - 將剩餘圖片轉換為 PIL 格式
+   - 偵測任何圖層中的 alpha 通道
+5. **模式選擇**:
+   - 若任何圖層有透明度則使用 RGBA 模式
+   - 否則使用 RGB 模式
+6. **PSD 建立**:
+   - 使用適當模式建立 PSD 文件
+   - 將每張圖片加入為獨立圖層
+   - 依序命名圖層 (Layer_1, Layer_2 等)
+7. **檔案輸出**: 儲存 PSD 至 ComfyUI 輸出目錄,包含時間戳記
+
+### 輸出位置
+
+- **目錄**: ComfyUI 輸出資料夾
+- **檔案名稱格式**: `{前綴}_{時間戳記}.psd`
+- **範例**: `ComfyUI_PSD_20250326_143022.psd`
+
+### 技術細節
+
+**透明度處理:**
+- 自動偵測 RGBA 圖片
+- 建立 RGBA 模式的 PSD 以保留透明度
+- 防止圖層建立時透明度遺失
+- 符合 Photoshop 對透明圖層的處理方式
+
+**圖片轉換:**
+- 轉換 torch 張量 [H, W, C],數值範圍 [0, 1]
+- 轉換為 uint8 [0, 255] 以相容 PIL
+- 保留顏色準確度和透明度
+
+**圖層命名:**
+- 依序命名: Layer_1, Layer_2, Layer_3 等
+- 可在 Photoshop 中建立後重新命名
+
+### 疑難排解
+
+**psd-tools 安裝失敗:**
+- 檢查網路連線
+- 手動安裝: `pip install psd-tools`
+- 確認 pip 已更新: `pip install --upgrade pip`
+
+**PSD 中缺少第一張圖片:**
+- 這是預期行為 - 批次中的第一張圖片會被跳過 (通常是合併預覽)
+- 確保批次至少有 2 張圖片
+
+**透明度未保留:**
+- 檢查輸入圖片是否有 alpha 通道 (RGBA 模式)
+- 節點會在偵測到 alpha 時自動使用 RGBA 模式
+
+**無法在 Photoshop 中開啟 PSD:**
+- 確保 psd-tools 已成功安裝
+- 檢查輸出檔案是否存在於 ComfyUI 輸出目錄
+- 嘗試更新 Photoshop 到最新版本
+
+### 相容性
+
+- **Photoshop**: 相容 Adobe Photoshop CS6 及更新版本
+- **其他軟體**: 適用於任何支援 PSD 格式的軟體 (GIMP、Affinity Photo 等)
+- **色彩模式**: RGB 和 RGBA
+- **位元深度**: 每通道 8-bit
 
 ---
 

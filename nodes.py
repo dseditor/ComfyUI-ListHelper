@@ -1100,7 +1100,38 @@ class BatchToPSD:
             from psd_tools.api.layers import PixelLayer
             from PIL import Image
         except ImportError:
-            return ("ERROR: Required library 'psd-tools' not found. Please install: pip install psd-tools",)
+            # Auto-install psd-tools
+            print("BatchToPSD: psd-tools not found, attempting auto-installation...")
+            try:
+                # Get the Python executable path
+                python_exe = sys.executable
+
+                # Install psd-tools
+                install_cmd = [python_exe, "-m", "pip", "install", "psd-tools"]
+                print(f"BatchToPSD: Running: {' '.join(install_cmd)}")
+
+                result = subprocess.run(
+                    install_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5 minute timeout
+                )
+
+                if result.returncode == 0:
+                    print("BatchToPSD: psd-tools installed successfully!")
+                    print(result.stdout)
+                    return ("SUCCESS: psd-tools package has been installed successfully. Please RESTART ComfyUI to use the BatchToPSD node.",)
+                else:
+                    error_msg = f"ERROR: Failed to install psd-tools.\nStdout: {result.stdout}\nStderr: {result.stderr}\n\nPlease manually install: pip install psd-tools"
+                    print(f"BatchToPSD: {error_msg}")
+                    return (error_msg,)
+
+            except subprocess.TimeoutExpired:
+                return ("ERROR: Installation timeout. Please manually install: pip install psd-tools",)
+            except Exception as e:
+                error_msg = f"ERROR: Failed to auto-install psd-tools: {str(e)}\n\nPlease manually install: pip install psd-tools"
+                print(f"BatchToPSD: {error_msg}")
+                return (error_msg,)
 
         # Validate input
         if images is None or images.shape[0] == 0:
