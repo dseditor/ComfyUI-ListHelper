@@ -1049,6 +1049,186 @@ class SimpleWildCardPlayer:
         return (prompt_list,)
 
 
+class BatchToPSD:
+    """
+    Convert batch PNG images to a multi-layer PSD file.
+    The first image in the batch is skipped (merged result),
+    and subsequent images become layers in the PSD file.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "filename_prefix": ("STRING", {
+                    "default": "ComfyUI_PSD",
+                    "tooltip": "Prefix for the output PSD filename"
+                }),
+            },
+            "optional": {
+                "reverse_layer_order": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Reverse the order of layers in PSD (bottom to top)"
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("message",)
+    FUNCTION = "convert_to_psd"
+    OUTPUT_NODE = True
+    CATEGORY = "ListHelper"
+
+    def convert_to_psd(self, images, filename_prefix, reverse_layer_order=False):
+        """
+        Convert batch images to multi-layer PSD file.
+
+        Args:
+            images: Batch of images [N, H, W, C]
+            filename_prefix: Filename prefix for output PSD
+            reverse_layer_order: Whether to reverse layer order
+
+        Returns:
+            Status message with file path or installation instruction
+        """
+        import numpy as np
+
+        # Try to import psd-tools
+        try:
+            from psd_tools import PSDImage
+            from psd_tools.api.layers import PixelLayer
+            from PIL import Image
+        except ImportError:
+            return ("ERROR: Required library 'psd-tools' not found. Please install: pip install psd-tools",)
+
+        # Validate input
+        if images is None or images.shape[0] == 0:
+            return ("ERROR: No images provided in batch.",)
+
+        if images.shape[0] == 1:
+            return ("ERROR: Batch must contain at least 2 images (first image is skipped, remaining become layers).",)
+
+        # Skip first image and get remaining layers
+        layer_images = images[1:]
+        num_layers = layer_images.shape[0]
+
+        print(f"BatchToPSD: Processing {num_layers} layers (skipped first image in batch)")
+
+        # Create output directory if it doesn't exist
+        output_dir = folder_paths.get_output_directory()
+
+        # Generate unique filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{filename_prefix}_{timestamp}.psd"
+        filepath = os.path.join(output_dir, filename)
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else output_dir, exist_ok=True)
+
+        try:
+            # Convert tensors to PIL Images and detect if we need alpha channel
+            pil_layers = []
+            has_alpha = False
+
+            print(f"\n  DEBUG: Input batch shape: {images.shape}")
+            print(f"  DEBUG: Layer images shape (after skipping first): {layer_images.shape}")
+
+            for i in range(num_layers):
+                # Convert from torch tensor [H, W, C] with values in [0, 1] to numpy array
+                img_array = layer_images[i].cpu().numpy()
+
+                # Convert to uint8 [0, 255]
+                img_array = (img_array * 255).astype(np.uint8)
+
+                # Detect number of channels
+                print(f"  DEBUG: Layer {i+1} array shape: {img_array.shape}, channels: {img_array.shape[2]}")
+                
+                if img_array.shape[2] == 4:
+                    has_alpha = True
+                    pil_img = Image.fromarray(img_array, mode='RGBA')
+                    # Check actual transparency
+                    alpha_channel = img_array[:, :, 3]
+                    transparent_pixels = np.sum(alpha_channel == 0)
+                    total_pixels = alpha_channel.size
+                    print(f"  DEBUG: Layer {i+1} has RGBA, transparent pixels: {transparent_pixels:,} ({transparent_pixels/total_pixels*100:.2f}%)")
+                elif img_array.shape[2] == 3:
+                    pil_img = Image.fromarray(img_array, mode='RGB')
+                    print(f"  DEBUG: Layer {i+1} is RGB (NO alpha channel)")
+                else:
+                    return (f"ERROR: Unsupported number of channels: {img_array.shape[2]}",)
+
+                pil_layers.append(pil_img)
+                print(f"  Converted layer {i+1}/{num_layers} - Size: {pil_img.size}, Mode: {pil_img.mode}")
+
+            # CRITICAL FIX: Use RGBA mode for PSD when any layer has transparency
+            # This prevents PixelLayer.frompil() from losing transparency when PSD is in RGB mode
+            # Issue: PixelLayer.frompil() mixes RGBA image's transparent areas with RGB colors
+            # Solution: Create PSD in RGBA mode to preserve alpha channel correctly
+            
+            # IMPORTANT: Always use RGBA mode if any layer has alpha channel
+            # This matches the successful test script behavior
+            target_mode = 'RGBA' if has_alpha else 'RGB'
+            print(f"\n  Target PSD mode: {target_mode} (has_alpha={has_alpha})")
+            
+            # If we detected alpha, we MUST use RGBA mode
+            # If no alpha detected but user expects transparency, force RGBA anyway
+            # This is safer and matches Photoshop's behavior
+            if has_alpha:
+                print(f"  ✓ Using RGBA mode to preserve transparency")
+            else:
+                print(f"  Using RGB mode (no alpha channels detected)")
+
+            # Convert all layers to match PSD mode
+            # This is critical - we must convert BEFORE creating the PSD
+            for i in range(len(pil_layers)):
+                if pil_layers[i].mode != target_mode:
+                    original_mode = pil_layers[i].mode
+                    pil_layers[i] = pil_layers[i].convert(target_mode)
+                    print(f"  Converted layer {i+1} from {original_mode} to {target_mode}")
+
+            # Reverse layer order if requested
+            if reverse_layer_order:
+                pil_layers.reverse()
+                print("  Reversed layer order")
+
+            # Get dimensions from first layer
+            width, height = pil_layers[0].size
+
+            # Create PSD with proper color mode (RGBA preserves transparency!)
+            psd = PSDImage.new(target_mode, (width, height), depth=8)
+            print(f"  Created PSD document: {width}x{height}, mode={target_mode}, depth=8")
+
+            # Add layers to PSD
+            for i, pil_img in enumerate(pil_layers):
+                layer_name = f"Layer_{i+1}"
+
+                # Create layer from PIL image
+                # When PSD is in RGBA mode, PixelLayer.frompil() preserves transparency correctly
+                layer = PixelLayer.frompil(pil_img, psd)
+                layer.name = layer_name
+
+                # Add to PSD
+                psd.append(layer)
+                print(f"  Added layer: {layer_name} (mode={pil_img.mode})")
+
+            # Save PSD file
+            psd.save(filepath)
+
+            success_msg = f"SUCCESS: PSD file saved to: {filepath} ({num_layers} layers, mode={target_mode})"
+            print(f"BatchToPSD: {success_msg}")
+            return (success_msg,)
+
+        except Exception as e:
+            error_msg = f"ERROR: Failed to create PSD file: {str(e)}"
+            print(f"BatchToPSD: {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return (error_msg,)
+
+
+
+
 
 NODE_CLASS_MAPPINGS = {
     "AudioListGenerator": AudioListGenerator,
@@ -1064,6 +1244,7 @@ NODE_CLASS_MAPPINGS = {
     "SimpleWildCardPlayer": SimpleWildCardPlayer,
     "QwenGPUInference": QwenGPUInference,
     "GGUFInference": GGUFInference,
+    "BatchToPSD": BatchToPSD,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1079,5 +1260,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SimpleWildCardPlayer": "Simple WildCard Player",
     "QwenGPUInference": "Qwen_TE_LLM",
     "GGUFInference": "GGUF_LLM",
+    "BatchToPSD": "Batch to PSD",
 }
 
