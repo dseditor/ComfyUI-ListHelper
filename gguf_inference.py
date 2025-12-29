@@ -58,22 +58,19 @@ class GGUFInference:
     def _download_file(cls, url: str, destination: str) -> bool:
         """Download file from URL with progress reporting"""
         try:
-            print(f"Downloading: {url}")
-            print(f"Destination: {destination}")
-
             def report_progress(block_num, block_size, total_size):
                 downloaded = block_num * block_size
                 if total_size > 0:
                     percent = min(downloaded * 100 / total_size, 100)
                     downloaded_mb = downloaded / (1024 * 1024)
                     total_mb = total_size / (1024 * 1024)
-                    print(f"Progress: {percent:.1f}% ({downloaded_mb:.1f}MB / {total_mb:.1f}MB)", end='\r')
+                    print(f"⬇️ {percent:.0f}% ({downloaded_mb:.0f}MB/{total_mb:.0f}MB)", end='\r')
 
             urllib.request.urlretrieve(url, destination, reporthook=report_progress)
-            print(f"\nDownload completed: {os.path.basename(destination)}")
+            print(f"\n✓ Downloaded: {os.path.basename(destination)}")
             return True
         except Exception as e:
-            print(f"\nDownload failed: {e}")
+            print(f"\n⚠️ Download failed: {e}")
             return False
 
     @classmethod
@@ -286,20 +283,46 @@ class GGUFInference:
     def _free_memory(self):
         """Free GPU and system memory"""
         try:
+            # Clear chat_handler first (it may hold references to model)
+            if self.clip_model_array is not None:
+                try:
+                    # Try to explicitly close/cleanup chat_handler if it has such methods
+                    if hasattr(self.clip_model_array, 'clip_ctx') and self.clip_model_array.clip_ctx is not None:
+                        del self.clip_model_array.clip_ctx
+                    if hasattr(self.clip_model_array, '_clip_free'):
+                        try:
+                            self.clip_model_array._clip_free()
+                        except:
+                            pass
+                except:
+                    pass
+
+                del self.clip_model_array
+                self.clip_model_array = None
+
+                # Force garbage collection after freeing chat_handler
+                gc.collect()
+
             # Clear model
             if self.model is not None:
+                try:
+                    # Try to explicitly close model context if available
+                    if hasattr(self.model, 'close'):
+                        self.model.close()
+                    if hasattr(self.model, '_ctx') and self.model._ctx is not None:
+                        del self.model._ctx
+                except:
+                    pass
+
                 del self.model
                 self.model = None
 
             self.current_model_path = None
             self.current_mmproj_path = None
 
-            if self.clip_model_array is not None:
-                del self.clip_model_array
-                self.clip_model_array = None
-
-            # Run garbage collection
-            gc.collect()
+            # Run garbage collection multiple times to ensure cleanup
+            for _ in range(3):
+                gc.collect()
 
             # Try to free CUDA memory if available
             try:
@@ -307,12 +330,38 @@ class GGUFInference:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                     torch.cuda.synchronize()
+                    # Force empty cache again
+                    torch.cuda.empty_cache()
             except:
                 pass
 
-            print("Memory freed successfully")
+            # Memory freed silently
+            pass
         except Exception as e:
-            print(f"Error freeing memory: {e}")
+            print(f"⚠️ Error freeing memory: {e}")
+
+    def _free_image_memory(self):
+        """Free image-related memory without unloading model"""
+        try:
+            # Run garbage collection multiple times
+            for _ in range(2):
+                gc.collect()
+
+            # Try to free CUDA memory if available
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                    # Empty cache again after sync
+                    torch.cuda.empty_cache()
+            except:
+                pass
+
+            # Image memory freed silently
+            pass
+        except Exception as e:
+            print(f"⚠️ Error freeing image memory: {e}")
 
     def _detect_cuda_version(self):
         """Detect CUDA version from system"""
@@ -654,25 +703,30 @@ class GGUFInference:
         model_name = os.path.basename(model_path).lower()
         return 'vl' in model_name
 
-    def _load_model(self, model_path: str, enable_vision: bool = False, mmproj_path: Optional[str] = None) -> bool:
-        """Load GGUF model with llama-cpp-python"""
+    def _load_model(self, model_path: str, enable_vision: bool = False, mmproj_path: Optional[str] = None, force_reload: bool = False) -> bool:
+        """Load GGUF model with llama-cpp-python
+
+        Args:
+            model_path: Path to GGUF model file
+            enable_vision: Whether to enable vision mode
+            mmproj_path: Path to mmproj file (for vision models)
+            force_reload: Force reload even if model is already loaded
+        """
         try:
             # Check if model and mmproj are already loaded
-            if (self.model is not None and
+            if (not force_reload and
+                self.model is not None and
                 self.current_model_path == model_path and
                 self.current_mmproj_path == mmproj_path):
-                print(f"Model already loaded: {os.path.basename(model_path)}")
-                if mmproj_path:
-                    print(f"  with mmproj: {os.path.basename(mmproj_path)}")
+                # Model already loaded, skip verbose output
                 return True
 
-            # Unload previous model if model or mmproj changed
+            # Unload previous model if model or mmproj changed, or force reload
             if self.model is not None:
-                if self.current_model_path != model_path:
-                    print("Unloading previous model (model changed)...")
-                elif self.current_mmproj_path != mmproj_path:
-                    print("Unloading previous model (mmproj changed)...")
+                # Unload silently
                 self._free_memory()
+                # Wait a bit for memory to be fully released
+                time.sleep(0.5)
 
             if not self.llama_cpp_available:
                 return False
@@ -683,11 +737,8 @@ class GGUFInference:
             # Check if this is a vision model
             is_vision_model = self._is_vision_model(model_path)
 
-            print(f"Loading GGUF model: {os.path.basename(model_path)}")
-            if is_vision_model:
-                print("  Detected: Vision model (VL)")
-            else:
-                print("  Detected: Text-only model")
+            # Only print model name for initial load
+            print(f"Loading: {os.path.basename(model_path)}")
 
             load_start = time.time()
 
@@ -701,35 +752,27 @@ class GGUFInference:
 
             # Load vision model if it's a VL model and vision is enabled
             if is_vision_model and enable_vision and mmproj_path and mmproj_path != "No mmproj files":
-                print(f"Loading vision model with mmproj: {os.path.basename(mmproj_path)}")
                 try:
                     chat_handler = Llava15ChatHandler(clip_model_path=mmproj_path)
                     load_kwargs["chat_handler"] = chat_handler
                     self.clip_model_array = chat_handler
-                    print("  Vision mode: Enabled")
                 except Exception as e:
-                    print(f"  WARNING: Failed to load mmproj, falling back to text-only mode: {e}")
-                    print("  Vision mode: Disabled (fallback)")
-            elif is_vision_model and not enable_vision:
-                print("  Vision mode: Disabled (vision not enabled)")
-            elif not is_vision_model and enable_vision:
-                print("  Vision mode: Ignored (not a vision model)")
+                    print(f"⚠️ Failed to load mmproj: {e}")
 
             self.model = Llama(**load_kwargs)
             self.current_model_path = model_path
             self.current_mmproj_path = mmproj_path
 
             load_time = time.time() - load_start
-            print(f"Model loaded successfully (Time: {load_time:.2f}s)")
+            print(f"✓ Loaded ({load_time:.1f}s)")
             return True
 
         except Exception as e:
-            print(f"Failed to load model: {e}")
-            import traceback
-            traceback.print_exc()
-            self.model = None
-            self.current_model_path = None
-            self.current_mmproj_path = None
+            print(f"⚠️ Load failed: {e}")
+
+            # Clean up all resources on load failure (silently)
+            self._free_memory()
+
             return False
 
     def _remove_thinking_tags(self, text: str) -> str:
@@ -737,6 +780,49 @@ class GGUFInference:
         cleaned_text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
         cleaned_text = re.sub(r'\n\s*\n', '\n', cleaned_text)
         return cleaned_text.strip()
+
+    def _detect_excessive_repetition(self, text: str, max_repeat_ratio: float = 0.3) -> Tuple[bool, str]:
+        """Detect if text has excessive repetition
+
+        Returns:
+            Tuple of (has_repetition, cleaned_text)
+        """
+        if not text or len(text) < 100:
+            return (False, text)
+
+        # Split into sentences/lines
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+
+        if len(lines) < 3:
+            return (False, text)
+
+        # Count line repetitions
+        line_counts = {}
+        for line in lines:
+            if len(line) > 10:  # Only count substantial lines
+                line_counts[line] = line_counts.get(line, 0) + 1
+
+        # Check for excessive repetition
+        total_lines = len(lines)
+        max_repeats = max(line_counts.values()) if line_counts else 0
+        repeat_ratio = max_repeats / total_lines if total_lines > 0 else 0
+
+        if repeat_ratio > max_repeat_ratio and max_repeats > 2:
+            # Remove duplicate lines, keeping only first occurrence
+            seen = set()
+            cleaned_lines = []
+            for line in lines:
+                if line not in seen:
+                    cleaned_lines.append(line)
+                    seen.add(line)
+                elif len(line) <= 10:  # Keep short lines (like separators)
+                    cleaned_lines.append(line)
+
+            cleaned_text = '\n'.join(cleaned_lines)
+            print(f"⚠️ Repetition detected, cleaned {len(lines)} → {len(cleaned_lines)} lines")
+            return (True, cleaned_text)
+
+        return (False, text)
 
     def _tensor_to_base64(self, image_tensor) -> str:
         """Convert ComfyUI IMAGE tensor to base64 string"""
@@ -824,13 +910,10 @@ class GGUFInference:
             model_path = os.path.join(download_dir, filename)
 
             # Check if file already exists
-            if os.path.exists(model_path):
-                print(f"Model already exists: {filename}")
-            else:
-                print(f"Downloading suggested model: {model}")
+            if not os.path.exists(model_path):
+                print(f"Downloading model...")
                 if not self._download_file(download_url, model_path):
-                    error_msg = f"Error: Failed to download model from {download_url}"
-                    print(error_msg)
+                    error_msg = f"⚠️ Download failed: {download_url}"
                     return (error_msg, seed)
         else:
             # Get full path from model name
@@ -858,26 +941,14 @@ class GGUFInference:
         enable_vision = False
         if image is not None and is_vision_model:
             enable_vision = True
-            print("=" * 70)
-            print("Auto-detected: Vision mode enabled")
-            print(f"  - Image input: Provided")
-            print(f"  - Model type: VL (Vision-Language)")
-            print("=" * 70)
         elif image is not None and not is_vision_model:
-            print("=" * 70)
-            print("WARNING: Image provided but model is not a VL (Vision-Language) type.")
-            print(f"Model: {os.path.basename(model_path)}")
-            print("Vision mode will NOT be enabled. Image will be ignored.")
-            print("=" * 70)
+            print(f"⚠️ Image ignored (model is text-only)")
 
         # Get mmproj path if vision is enabled
         mmproj_path = None
         if enable_vision:
             if mmproj_file == "No mmproj files":
-                print("=" * 70)
-                print("WARNING: Vision mode detected but no mmproj file selected.")
-                print("Falling back to text-only mode.")
-                print("=" * 70)
+                print("⚠️ No mmproj file, falling back to text-only mode")
                 enable_vision = False
             else:
                 # Check if mmproj is a suggested download
@@ -891,17 +962,11 @@ class GGUFInference:
                         if clip_paths and len(clip_paths) > 0:
                             download_dir = clip_paths[0]
                         else:
-                            print("=" * 70)
-                            print("WARNING: Cannot find clip folder for downloading mmproj.")
-                            print("Falling back to text-only mode.")
-                            print("=" * 70)
+                            print("⚠️ Cannot find clip folder")
                             enable_vision = False
                             mmproj_path = None
                     except:
-                        print("=" * 70)
-                        print("WARNING: Cannot access clip folder for downloading mmproj.")
-                        print("Falling back to text-only mode.")
-                        print("=" * 70)
+                        print("⚠️ Cannot access clip folder")
                         enable_vision = False
                         mmproj_path = None
 
@@ -909,15 +974,10 @@ class GGUFInference:
                         mmproj_path = os.path.join(download_dir, filename)
 
                         # Check if file already exists
-                        if os.path.exists(mmproj_path):
-                            print(f"mmproj already exists: {filename}")
-                        else:
-                            print(f"Downloading suggested mmproj: {mmproj_file}")
+                        if not os.path.exists(mmproj_path):
+                            print(f"Downloading mmproj...")
                             if not self._download_file(download_url, mmproj_path):
-                                print("=" * 70)
-                                print(f"WARNING: Failed to download mmproj from {download_url}")
-                                print("Falling back to text-only mode.")
-                                print("=" * 70)
+                                print(f"⚠️ Download failed")
                                 enable_vision = False
                                 mmproj_path = None
                 else:
@@ -929,14 +989,17 @@ class GGUFInference:
                             break
 
                     if mmproj_path is None or not os.path.exists(mmproj_path):
-                        print("=" * 70)
-                        print(f"WARNING: mmproj file not found: {mmproj_file}")
-                        print("Falling back to text-only mode.")
-                        print("=" * 70)
+                        print(f"⚠️ mmproj not found: {mmproj_file}")
                         enable_vision = False
 
-        # Load model
+        # Load model (first attempt)
         load_result = self._load_model(model_path, enable_vision, mmproj_path)
+
+        # If loading failed, try force reload once
+        if not load_result:
+            print("⚠️ Retrying with force reload...")
+            load_result = self._load_model(model_path, enable_vision, mmproj_path, force_reload=True)
+
         if not load_result:
             # Model loading failed - get the error details from the exception
             if auto_install_llama_cpp:
@@ -1066,23 +1129,22 @@ class GGUFInference:
                         {"type": "image_url", "image_url": image_url}
                     ]
                 })
-                print("Using vision mode with image input")
             else:
                 messages.append({"role": "user", "content": prompt})
-                if image is not None and not enable_vision:
-                    print("Note: Image input provided but vision mode is disabled, ignoring image")
 
-            # Run inference
-            print(f"Starting inference (Seed: {seed})...")
+            # Run inference (silently)
             inference_start = time.time()
 
             # Prepare generation parameters
+            # Set repeat_penalty internally to prevent repetitive output (1.15 is a good balance)
             gen_params = {
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
                 "top_p": top_p,
                 "top_k": top_k,
+                "repeat_penalty": 1.15,  # Internal setting to reduce repetition
+                "stop": ["<|im_end|>", "<|endoftext|>", "</s>", "\n\n\n"],  # Common stop sequences
             }
 
             # Only add seed if it's set (> 0)
@@ -1097,21 +1159,37 @@ class GGUFInference:
             # Remove thinking tags
             response_text = self._remove_thinking_tags(response_text)
 
+            # Detect and clean excessive repetition
+            has_repetition, response_text = self._detect_excessive_repetition(response_text)
+
             inference_time = time.time() - inference_start
             tokens_generated = response["usage"]["completion_tokens"]
             tokens_per_sec = tokens_generated / inference_time if inference_time > 0 else 0
 
-            print(f"Inference completed (Time: {inference_time:.2f}s | Tokens: {tokens_generated} | Speed: {tokens_per_sec:.1f} tokens/s)")
+            print(f"✓ Done ({inference_time:.1f}s, {tokens_generated} tokens, {tokens_per_sec:.0f}t/s)")
+
+            # Always free image-related memory after inference
+            if image is not None:
+                self._free_image_memory()
 
             # Unload model if requested
             if not keep_model_loaded:
-                print("Unloading model to free memory...")
                 self._free_memory()
 
             return (response_text, seed)
 
         except Exception as e:
             import traceback
-            error_msg = f"Inference failed: {str(e)}\n{traceback.format_exc()}"
+            error_msg = f"⚠️ Inference failed: {str(e)}"
             print(error_msg)
+
+            # Clean up resources on error (silently)
+            if image is not None:
+                self._free_image_memory()
+
+            # If error suggests memory/loading issue, unload model completely
+            error_str = str(e).lower()
+            if any(keyword in error_str for keyword in ['memory', 'load', 'allocation', 'cuda', 'out of memory']):
+                self._free_memory()
+
             return (error_msg, seed)
