@@ -173,11 +173,19 @@ class ModelDownloader:
                     print(f"  Destination: {dest_path}")
 
                     try:
-                        # Use HuggingFace Hub or S3impleClient for download
+                        # Determine download method
+                        use_hf_hub = False
                         if hf_available and patch_applied and self._is_huggingface_url(url):
-                            # Use hf_hub_download with S3C acceleration
+                            # Check if file path contains subdirectories
                             repo_id, file_path = self._parse_hf_url(url)
 
+                            # Only use hf_hub_download if file is at root level (no subdirs)
+                            # This prevents hf_hub_download from creating unwanted subdirectories
+                            if '/' not in file_path:
+                                use_hf_hub = True
+
+                        if use_hf_hub:
+                            # Use hf_hub_download (only for root-level files)
                             from huggingface_hub import hf_hub_download
                             downloaded_path = hf_hub_download(
                                 repo_id=repo_id,
@@ -192,6 +200,7 @@ class ModelDownloader:
 
                         else:
                             # Use S3impleClient direct download
+                            # (Also accelerated if HF patch is applied)
                             result = s3c.download(
                                 url=url,
                                 dest=dest_path,
@@ -199,8 +208,9 @@ class ModelDownloader:
 
                             if result.success:
                                 size_mb = result.total_bytes / (1024 * 1024)
-                                results.append(f"✓ {filename} ({size_mb:.2f} MB)")
-                                print(f"  ✓ Download successful - {size_mb:.2f} MB")
+                                method = "(S3C + HF patch)" if patch_applied else "(S3C)"
+                                results.append(f"✓ {filename} ({size_mb:.2f} MB) {method}")
+                                print(f"  ✓ Download successful - {size_mb:.2f} MB {method}")
                             else:
                                 results.append(f"✗ {filename} - Failed")
                                 print(f"  ✗ Download failed")
@@ -349,21 +359,36 @@ class ModelDownloader:
     def _get_target_folder(self, models_root: str, folder_name: str) -> str:
         """
         Get target folder path
-        Folder name is case-insensitive
+        Supports multi-level paths (e.g., "clip/split_files")
+        Base folder name is case-insensitive
         """
-        # Normalize folder name (lowercase)
-        folder_name_lower = folder_name.lower()
+        # Split folder path into parts
+        # Support both forward slash and backslash
+        folder_parts = folder_name.replace('\\', '/').split('/')
 
-        # Check if corresponding folder already exists (case-insensitive)
+        # Get base folder (first part)
+        base_folder = folder_parts[0]
+        base_folder_lower = base_folder.lower()
+
+        # Check if base folder already exists (case-insensitive)
+        actual_base_folder = base_folder
         if os.path.exists(models_root):
             for existing_folder in os.listdir(models_root):
                 existing_path = os.path.join(models_root, existing_folder)
-                if os.path.isdir(existing_path) and existing_folder.lower() == folder_name_lower:
-                    print(f"  Found existing folder: {existing_folder}")
-                    return existing_path
+                if os.path.isdir(existing_path) and existing_folder.lower() == base_folder_lower:
+                    actual_base_folder = existing_folder
+                    print(f"  Found existing base folder: {existing_folder}")
+                    break
 
-        # If not exists, create using user-provided name
-        return os.path.join(models_root, folder_name)
+        # Construct full path with all parts
+        if len(folder_parts) > 1:
+            # Multi-level path: models_root/base_folder/sub1/sub2/...
+            full_path = os.path.join(models_root, actual_base_folder, *folder_parts[1:])
+        else:
+            # Single level: models_root/base_folder
+            full_path = os.path.join(models_root, actual_base_folder)
+
+        return full_path
 
     def _is_huggingface_url(self, url: str) -> bool:
         """Check if URL is a HuggingFace URL"""
