@@ -25,6 +25,7 @@ from random import Random
 from datetime import datetime
 from .qwen_inference import QwenGPUInference
 from .gguf_inference import GGUFInference
+from .model_downloader import ModelDownloader
 
 class AudioListGenerator:
     @classmethod
@@ -1276,6 +1277,7 @@ NODE_CLASS_MAPPINGS = {
     "QwenGPUInference": QwenGPUInference,
     "GGUFInference": GGUFInference,
     "BatchToPSD": BatchToPSD,
+    "ModelDownloader": ModelDownloader,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1292,5 +1294,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "QwenGPUInference": "Qwen_TE_LLM",
     "GGUFInference": "GGUF_LLM",
     "BatchToPSD": "Batch to PSD",
+    "ModelDownloader": "模型下載器",
 }
 
