@@ -26,6 +26,8 @@ from datetime import datetime
 from .qwen_inference import QwenGPUInference
 from .gguf_inference import GGUFInference
 from .model_downloader import ModelDownloader
+from .openai_helper import OpenAIHelper
+from .openrouter_llm import OpenRouterLLM
 
 class AudioListGenerator:
     @classmethod
@@ -47,7 +49,7 @@ class AudioListGenerator:
     OUTPUT_IS_LIST = (False, True)
     RETURN_NAMES = ("cycle", "audio_list")
     FUNCTION = "split"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Audio"
 
     def split(self, waveform, videofps, samplefps, pad_last_segment, crossfade_duration=0.1, crossfade_type="cosine"):
         audio_tensor = waveform["waveform"]         # shape: [1, C, N]
@@ -192,7 +194,7 @@ class AudioToFrameCount:
     RETURN_TYPES = ("INT",)
     RETURN_NAMES = ("frames",)
     FUNCTION = "calculate"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Audio"
 
     def calculate(self, audio, fps):
         waveform = audio["waveform"]         # shape: [1, channels, samples]
@@ -213,7 +215,7 @@ class PromptListGenerator:
         return {
             "required": {
                 "text": ("STRING", {"multiline": True, "dynamicPrompts": False}),
-                "delimiter": ("STRING", {"multiline": False, "default": ",", "dynamicPrompts": False}),
+                "delimiter": ("STRING", {"multiline": False, "default": "", "dynamicPrompts": False}),
                 "use_regex": ("BOOLEAN", {"default": False}),
                 "keep_delimiter": ("BOOLEAN", {"default": False}),
                 "start_index": ("INT", {"default": 0, "min": 0, "max": 1000}),
@@ -230,7 +232,7 @@ class PromptListGenerator:
     RETURN_NAMES = ("text_list", "total_index")
     FUNCTION = "run"
     OUTPUT_IS_LIST = (True, False)
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Tools"
     
     def run(self, text, delimiter, use_regex, keep_delimiter, start_index, skip_every, max_count, skip_first_index, random_order, seed):
         # 處理多個換行符號為一個換行符號
@@ -387,7 +389,7 @@ class NumberListGenerator:
     RETURN_TYPES = ("INT", "FLOAT", "INT")
     RETURN_NAMES = ("int_list", "float_list", "total_count")
     FUNCTION = "generate_number_list"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Math"
     INPUT_IS_LIST = False
     OUTPUT_IS_LIST = (True, True, False)
     
@@ -467,7 +469,7 @@ class AudioListCombine:
     
     RETURN_TYPES = ("AUDIO",)
     FUNCTION = "combine_audio_list"
-    CATEGORY = "listhelper"
+    CATEGORY = "ListHelper/Audio"
     
     # 標記此節點接收清單輸入
     INPUT_IS_LIST = True
@@ -655,7 +657,7 @@ class CeilDivide:
     RETURN_TYPES = ("INT",)
     RETURN_NAMES = ("result",)
     FUNCTION = "ceil_divide"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Math"
     
     def ceil_divide(self, a: int, b: int) -> tuple:
         """
@@ -679,115 +681,6 @@ class CeilDivide:
         
         return (result,)     
         
-class LoadVideoPath:
-    """
-    載入視頻檔案，輸出視頻物件和完整檔案路徑
-    """
-    
-    @classmethod
-    def INPUT_TYPES(cls):
-        input_dir = folder_paths.get_input_directory()
-        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        files = folder_paths.filter_files_content_types(files, ["video"])
-        return {
-            "required": {
-                "file": (sorted(files), {"video_upload": True}),
-            }
-        }
-
-    CATEGORY = "ListHelper"
-    RETURN_TYPES = (IO.VIDEO, "STRING")
-    RETURN_NAMES = ("video", "path")
-    FUNCTION = "load_video_path"
-    
-    def load_video_path(self, file):
-        video_path = folder_paths.get_annotated_filepath(file)
-        video_object = VideoFromFile(video_path)
-        return (video_object, video_path)
-
-    @classmethod
-    def IS_CHANGED(cls, file):
-        video_path = folder_paths.get_annotated_filepath(file)
-        return os.path.getmtime(video_path)
-
-    @classmethod
-    def VALIDATE_INPUTS(cls, file):
-        if not folder_paths.exists_annotated_filepath(file):
-            return f"Invalid video file: {file}"
-        return True
-
-
-class SaveVideoPath:
-    """
-    保存視頻檔案，輸出保存後的完整檔案路徑
-    """
-    
-    def __init__(self):
-        self.output_dir = folder_paths.get_output_directory()
-        self.type = "output"
-        self.prefix_append = ""
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "video": (IO.VIDEO, {"tooltip": "要保存的視頻"}),
-                "filename_prefix": ("STRING", {"default": "video/ComfyUI", 
-                                              "tooltip": "檔案名前綴"}),
-                "format": (VideoContainer.as_input(), {"default": "auto", 
-                                                      "tooltip": "視頻格式"}),
-                "codec": (VideoCodec.as_input(), {"default": "auto", 
-                                                 "tooltip": "視頻編碼"}),
-            },
-            "hidden": {
-                "prompt": "PROMPT",
-                "extra_pnginfo": "EXTRA_PNGINFO"
-            },
-        }
-
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("path",)
-    FUNCTION = "save_video_path"
-    OUTPUT_NODE = True
-    CATEGORY = "ListHelper"
-
-    def save_video_path(self, video, filename_prefix, format, codec, 
-                       prompt=None, extra_pnginfo=None):
-        filename_prefix += self.prefix_append
-        width, height = video.get_dimensions()
-        
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(
-            filename_prefix,
-            self.output_dir,
-            width,
-            height
-        )
-        
-        # 準備元數據
-        saved_metadata = None
-        if not args.disable_metadata:
-            metadata = {}
-            if extra_pnginfo is not None:
-                metadata.update(extra_pnginfo)
-            if prompt is not None:
-                metadata["prompt"] = prompt
-            if len(metadata) > 0:
-                saved_metadata = metadata
-        
-        # 生成檔案名和完整路徑
-        file = f"{filename}_{counter:05}_.{VideoContainer.get_extension(format)}"
-        full_path = os.path.join(full_output_folder, file)
-        
-        # 保存視頻
-        video.save_to(
-            full_path,
-            format=format,
-            codec=codec,
-            metadata=saved_metadata
-        )
-        
-        return (full_path,)        
-            
 class FrameMatch:
     """
     調整圖像序列到指定幀數的節點
@@ -819,7 +712,7 @@ class FrameMatch:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("images",)
     FUNCTION = "match_frames"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Tools"
     
     def match_frames(self, images, target_frames, fill_mode="repeat_last"):
         """
@@ -981,7 +874,7 @@ class SimpleWildCardPlayer:
     RETURN_NAMES = ("prompt_list",)
     OUTPUT_IS_LIST = (True,)
     FUNCTION = "generate_wildcards"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Tools"
 
     def generate_wildcards(self, basic_prompt, wildcard_template, wildcard_files, batch_count, seed):
         """
@@ -1079,7 +972,7 @@ class BatchToPSD:
     RETURN_NAMES = ("message",)
     FUNCTION = "convert_to_psd"
     OUTPUT_NODE = True
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/Tools"
 
     def convert_to_psd(self, images, filename_prefix, reverse_layer_order=False):
         """
@@ -1270,14 +1163,14 @@ NODE_CLASS_MAPPINGS = {
     "NumberListGenerator": NumberListGenerator,
     "AudioListCombine": AudioListCombine,
     "CeilDivide": CeilDivide,
-    "LoadVideoPath": LoadVideoPath,
-    "SaveVideoPath": SaveVideoPath,
     "FrameMatch": FrameMatch,
     "SimpleWildCardPlayer": SimpleWildCardPlayer,
     "QwenGPUInference": QwenGPUInference,
     "GGUFInference": GGUFInference,
     "BatchToPSD": BatchToPSD,
     "ModelDownloader": ModelDownloader,
+    "OpenAIHelper": OpenAIHelper,
+    "OpenRouterLLM": OpenRouterLLM,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1287,13 +1180,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "NumberListGenerator": "NumberListGenerator",
     "AudioListCombine": "AudioListCombine",
     "CeilDivide": "CeilDivide",
-    "LoadVideoPath": "LoadVideoPath",
-    "SaveVideoPath": "SaveVideoPath",
     "FrameMatch": "FrameMatch",
     "SimpleWildCardPlayer": "Simple WildCard Player",
     "QwenGPUInference": "Qwen_TE_LLM",
     "GGUFInference": "GGUF_LLM",
     "BatchToPSD": "Batch to PSD",
-    "ModelDownloader": "模型下載器",
+    "ModelDownloader": "Model Downloader",
+    "OpenAIHelper": "OpenAI Helper",
+    "OpenRouterLLM": "OpenRouter LLM",
 }
 

@@ -1,0 +1,896 @@
+{
+  "id": "df4e9a49-6fc7-4de9-b5ac-07d4af3a7bab",
+  "revision": 0,
+  "last_node_id": 18,
+  "last_link_id": 0,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "AudioListGenerator",
+      "pos": [
+        -1200,
+        0
+      ],
+      "size": [
+        270,
+        174
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "waveform",
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cycle",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio_list",
+          "shape": 6,
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "AudioListGenerator"
+      },
+      "widgets_values": [
+        23.976,
+        81,
+        true,
+        0.1,
+        "cosine"
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 4,
+      "type": "AudioToFrameCount",
+      "pos": [
+        -1200,
+        230
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "frames",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "AudioToFrameCount"
+      },
+      "widgets_values": [
+        25
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 1,
+      "type": "AudioListCombine",
+      "pos": [
+        -1200,
+        -180
+      ],
+      "size": [
+        270,
+        130
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio_list",
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "AudioListCombine"
+      },
+      "widgets_values": [
+        "concatenate",
+        0,
+        true,
+        44100
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 6,
+      "type": "QwenGPUInference",
+      "pos": [
+        -880,
+        -170
+      ],
+      "size": [
+        310,
+        402
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "used_seed",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "QwenGPUInference"
+      },
+      "widgets_values": [
+        "A girl in a coffee shop",
+        "Custom",
+        "",
+        2048,
+        0.7,
+        0,
+        "randomize",
+        false,
+        false,
+        false,
+        0.9,
+        50
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 9,
+      "type": "ChineseConverter",
+      "pos": [
+        -1230,
+        390
+      ],
+      "size": [
+        310,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "converted_text",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "ChineseConverter"
+      },
+      "widgets_values": [
+        "",
+        true
+      ],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 10,
+      "type": "ChineseTranslate",
+      "pos": [
+        -1220,
+        640
+      ],
+      "size": [
+        290,
+        180
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "translated_text",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "ChineseTranslate"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 13,
+      "type": "AutoWhiteBalance",
+      "pos": [
+        -270,
+        390
+      ],
+      "size": [
+        270,
+        130
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "AutoWhiteBalance"
+      },
+      "widgets_values": [
+        "gray_world",
+        1,
+        true,
+        true
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 15,
+      "type": "ModelDownloader",
+      "pos": [
+        -850,
+        540
+      ],
+      "size": [
+        240,
+        230
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "status_message",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "ModelDownloader"
+      },
+      "widgets_values": [
+        "diffusion_models\nhttps://huggingface.co/unsloth/Qwen-Image-2512-GGUF/resolve/main/qwen-image-2512-Q8_0.gguf\nCLIP\nhttps://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-Q8_0.gguf",
+        true,
+        true,
+        4,
+        8
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 12,
+      "type": "PromptListGenerator",
+      "pos": [
+        -570,
+        390
+      ],
+      "size": [
+        280,
+        348
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "text_list",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "total_index",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "PromptListGenerator"
+      },
+      "widgets_values": [
+        "",
+        ",",
+        false,
+        false,
+        0,
+        0,
+        10,
+        false,
+        false,
+        0,
+        "randomize"
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 14,
+      "type": "SimpleWildCardPlayer",
+      "pos": [
+        -270,
+        580
+      ],
+      "size": [
+        300,
+        260
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "prompt_list",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "SimpleWildCardPlayer"
+      },
+      "widgets_values": [
+        "(masterpiece, best quality, photorealistic, 8k, highly detailed, solo, 1girl, realistic photography:1.2), natural skin texture, well-rested appearance, detailed eyelashes, with blunt fringe, see-through bangs, Long sideburns, side locks framing face, detailed hair strands, over fringe, with, on neckline, (she wearing a full and proper, lace undergarment, tones, fully clothed, fully covering legs, complete outfit.)",
+        "basic",
+        "years, age, pretit, contory, cm, face, realface_skin, bodytype, breasts, expression, eyeiled, eye_shape, eye_quality, eye_effect, eyecolor, hh, colors4, hairsize, hairlong, colors3, headwear, colors2, earring, earring-visibility, neck, mate, grid, wetdry, clothestight, tt-clothes, garter-tights, colors5, socks, shoeme, shoes, 169, light, RandomPose-light, backsence",
+        1,
+        0,
+        "randomize"
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 11,
+      "type": "BatchToPSD",
+      "pos": [
+        -860,
+        400
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "message",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "BatchToPSD"
+      },
+      "widgets_values": [
+        "ComfyUI_PSD",
+        false
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 17,
+      "type": "NumberListGenerator",
+      "pos": [
+        100,
+        550
+      ],
+      "size": [
+        270,
+        242
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "int_list",
+          "shape": 6,
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "float_list",
+          "shape": 6,
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "total_count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "NumberListGenerator"
+      },
+      "widgets_values": [
+        0,
+        10,
+        1,
+        10,
+        false,
+        -1,
+        "randomize"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 16,
+      "type": "CeilDivide",
+      "pos": [
+        100,
+        390
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "CeilDivide"
+      },
+      "widgets_values": [
+        1,
+        1
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 18,
+      "type": "FrameMatch",
+      "pos": [
+        -570,
+        780
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "FrameMatch"
+      },
+      "widgets_values": [
+        100,
+        "repeat_last"
+      ],
+      "color": "#323",
+      "bgcolor": "#535"
+    },
+    {
+      "id": 7,
+      "type": "GGUFInference",
+      "pos": [
+        -550,
+        -170
+      ],
+      "size": [
+        290,
+        450
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "used_seed",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "GGUFInference"
+      },
+      "widgets_values": [
+        "Download: QwenVL",
+        "",
+        "image_to_prompt.md",
+        "",
+        4096,
+        0.7,
+        0.9,
+        40,
+        0,
+        "randomize",
+        false,
+        "Download: QwenVL mmproj",
+        true
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 8,
+      "type": "OpenAIHelper",
+      "pos": [
+        -240,
+        -170
+      ],
+      "size": [
+        270,
+        400
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "model_name_list",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "OpenAIHelper"
+      },
+      "widgets_values": [
+        "http://localhost:11434/v1/chat/completions",
+        "ollama",
+        "huihui_ai/qwen3-vl-abliterated:4b-instruct",
+        "請分析提供的內容。",
+        "Custom",
+        2000,
+        "請以繁體中文輸出使用者內容，不須包括引導或後綴，如「這就是你要的結果」、「以下是你要的結果」、「你要不要我幫你」、「你說的對」等等，只需要輸出使用者要的結論raw_text。請勿使用Markdown語法（如**粗體**），直接輸出純文字即可。",
+        ""
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 5,
+      "type": "OpenRouterLLM",
+      "pos": [
+        70,
+        -170
+      ],
+      "size": [
+        300,
+        392
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_input_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_input_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_input_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image_output",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "text_output",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "b8d4ae6b6a68b015522ae2a09a88179fa2231831",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "OpenRouterLLM"
+      },
+      "widgets_values": [
+        "",
+        "Please analyze the provided content.",
+        "google/gemma-3-27b-it:free",
+        "Custom",
+        -1,
+        "randomize",
+        "",
+        "",
+        false,
+        1024,
+        1024,
+        "lanczos"
+      ],
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    }
+  ],
+  "links": [],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Audio",
+      "bounding": [
+        -1210,
+        -250,
+        290,
+        551.6
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "LLM",
+      "bounding": [
+        -890,
+        -240,
+        1280,
+        533.6
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "Chinese",
+      "bounding": [
+        -1240,
+        320,
+        330,
+        513.6
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "Tools",
+      "bounding": [
+        -870,
+        320,
+        920,
+        580
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "Math",
+      "bounding": [
+        90,
+        320,
+        290,
+        485.6
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "workflowRendererVersion": "LG",
+    "ue_links": [],
+    "ds": {
+      "scale": 0.7784765802692789,
+      "offset": [
+        1371.1727829459182,
+        295.90198524771284
+      ]
+    },
+    "frontendVersion": "1.35.9",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

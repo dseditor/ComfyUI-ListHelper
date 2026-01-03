@@ -9,6 +9,7 @@ test_*.py
 
 # Config files
 openaimodel.json
+nul
 
 # Python cache
 __pycache__/

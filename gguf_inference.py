@@ -231,7 +231,7 @@ class GGUFInference:
                     "default": ""
                 }),
                 "max_tokens": ("INT", {
-                    "default": 4096,
+                    "default": 3072,
                     "min": 1,
                     "max": 8192,
                     "step": 1
@@ -263,10 +263,16 @@ class GGUFInference:
                 }),
                 "mmproj_file": (mmproj_names, {
                     "default": default_mmproj,
-                    "tooltip": "Vision model mmproj file (auto-enabled when image is provided and model is VL type)"
+                    "tooltip": "Vision model mmproj file (auto-enabled when any image is provided and model is VL type)"
                 }),
-                "image": ("IMAGE", {
-                    "tooltip": "Input image for vision model (auto-enables vision mode for VL models)"
+                "image_1": ("IMAGE", {
+                    "tooltip": "First input image for vision model (auto-enables vision mode for VL models)"
+                }),
+                "image_2": ("IMAGE", {
+                    "tooltip": "Second input image for vision model (optional, for multi-image analysis)"
+                }),
+                "image_3": ("IMAGE", {
+                    "tooltip": "Third input image for vision model (optional, for multi-image analysis)"
                 }),
                 "auto_install_llama_cpp": ("BOOLEAN", {
                     "default": True,
@@ -278,7 +284,7 @@ class GGUFInference:
     RETURN_TYPES = ("STRING", "INT",)
     RETURN_NAMES = ("text", "used_seed",)
     FUNCTION = "inference"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/LLM"
 
     def _free_memory(self):
         """Free GPU and system memory"""
@@ -825,7 +831,7 @@ class GGUFInference:
         return (False, text)
 
     def _tensor_to_base64(self, image_tensor) -> str:
-        """Convert ComfyUI IMAGE tensor to base64 string"""
+        """Convert ComfyUI IMAGE tensor to base64 string (single image)"""
         try:
             from PIL import Image
 
@@ -856,6 +862,53 @@ class GGUFInference:
             traceback.print_exc()
             return None
 
+    def _tensors_to_base64_list(self, image_tensor) -> List[str]:
+        """Convert ComfyUI IMAGE tensor(s) to list of base64 strings
+        
+        Args:
+            image_tensor: ComfyUI IMAGE tensor [B, H, W, C] or [H, W, C]
+            
+        Returns:
+            List of base64 encoded image URLs
+        """
+        try:
+            from PIL import Image
+            
+            # Handle single image [H, W, C]
+            if len(image_tensor.shape) == 3:
+                image_tensor = image_tensor.unsqueeze(0)  # Add batch dimension
+            
+            # ComfyUI IMAGE format: [B, H, W, C] with values in [0, 1]
+            batch_size = image_tensor.shape[0]
+            base64_list = []
+            
+            for i in range(batch_size):
+                # Get single image from batch
+                single_image = image_tensor[i]
+                
+                # Convert from [0, 1] to [0, 255]
+                image_np = (single_image.cpu().numpy() * 255).astype(np.uint8)
+                
+                # Create PIL Image
+                pil_image = Image.fromarray(image_np)
+                
+                # Convert to JPEG bytes
+                buffered = io.BytesIO()
+                pil_image.save(buffered, format="JPEG", quality=95)
+                img_bytes = buffered.getvalue()
+                
+                # Encode to base64
+                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                base64_list.append(f"data:image/jpeg;base64,{img_base64}")
+            
+            return base64_list
+            
+        except Exception as e:
+            print(f"Error converting images to base64: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
     def inference(
         self,
         model: str,
@@ -869,7 +922,9 @@ class GGUFInference:
         seed: int = 0,
         keep_model_loaded: bool = False,
         mmproj_file: str = "No mmproj files",
-        image = None,
+        image_1 = None,
+        image_2 = None,
+        image_3 = None,
         auto_install_llama_cpp: bool = True,
     ) -> Tuple[str, int]:
         """Execute GGUF model inference"""
@@ -937,12 +992,22 @@ class GGUFInference:
         # Check if this is a vision model
         is_vision_model = self._is_vision_model(model_path)
 
-        # Auto-detect vision mode: enable if image is provided and model is VL type
+        # Collect all provided images into a list
+        images = []
+        if image_1 is not None:
+            images.append(image_1)
+        if image_2 is not None:
+            images.append(image_2)
+        if image_3 is not None:
+            images.append(image_3)
+
+        # Auto-detect vision mode: enable if any image is provided and model is VL type
         enable_vision = False
-        if image is not None and is_vision_model:
+        if len(images) > 0 and is_vision_model:
             enable_vision = True
-        elif image is not None and not is_vision_model:
-            print(f"⚠️ Image ignored (model is text-only)")
+            print(f"📸 Detected {len(images)} image(s) for vision analysis")
+        elif len(images) > 0 and not is_vision_model:
+            print(f"⚠️ {len(images)} image(s) ignored (model is text-only)")
 
         # Get mmproj path if vision is enabled
         mmproj_path = None
@@ -1113,21 +1178,27 @@ class GGUFInference:
             if system_prompt and system_prompt.strip():
                 messages.append({"role": "system", "content": system_prompt})
 
-            # Add image if vision is enabled and model supports it
-            if enable_vision and is_vision_model and image is not None:
-                # Convert image tensor to base64
-                image_url = self._tensor_to_base64(image)
-                if image_url is None:
-                    error_msg = "Error: Failed to convert image to base64 format."
-                    print(error_msg)
-                    return (error_msg, seed)
-
+            # Add image(s) if vision is enabled and model supports it
+            if enable_vision and is_vision_model and len(images) > 0:
+                # Build content with text first
+                content = [{"type": "text", "text": prompt}]
+                
+                # Convert each image to base64 and add to content
+                for idx, img in enumerate(images, 1):
+                    # Convert single image tensor to base64
+                    image_url = self._tensor_to_base64(img)
+                    if image_url is None:
+                        error_msg = f"Error: Failed to convert image_{idx} to base64 format."
+                        print(error_msg)
+                        return (error_msg, seed)
+                    content.append({"type": "image_url", "image_url": image_url})
+                
+                # Log number of images being processed
+                print(f"🎬 Processing {len(images)} image(s) with vision model")
+                
                 messages.append({
                     "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": image_url}
-                    ]
+                    "content": content
                 })
             else:
                 messages.append({"role": "user", "content": prompt})
@@ -1169,7 +1240,7 @@ class GGUFInference:
             print(f"✓ Done ({inference_time:.1f}s, {tokens_generated} tokens, {tokens_per_sec:.0f}t/s)")
 
             # Always free image-related memory after inference
-            if image is not None:
+            if len(images) > 0:
                 self._free_image_memory()
 
             # Unload model if requested
@@ -1184,7 +1255,7 @@ class GGUFInference:
             print(error_msg)
 
             # Clean up resources on error (silently)
-            if image is not None:
+            if len(images) > 0:
                 self._free_image_memory()
 
             # If error suggests memory/loading issue, unload model completely

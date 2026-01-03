@@ -158,7 +158,7 @@ class QwenGPUInference:
     RETURN_TYPES = ("STRING", "INT",)
     RETURN_NAMES = ("text", "used_seed",)
     FUNCTION = "inference"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/LLM"
 
     def _find_qwen_model(self) -> Optional[str]:
         """Auto-find qwen_3_4b.safetensors model"""

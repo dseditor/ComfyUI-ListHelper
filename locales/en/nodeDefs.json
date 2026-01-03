@@ -1,0 +1,517 @@
+{
+  "AudioListGenerator": {
+    "display_name": "Audio Split to List",
+    "inputs": {
+      "waveform": {
+        "name": "Waveform"
+      },
+      "videofps": {
+        "name": "Video FPS"
+      },
+      "samplefps": {
+        "name": "Sample FPS"
+      },
+      "pad_last_segment": {
+        "name": "Pad Last Segment"
+      },
+      "crossfade_duration": {
+        "name": "Crossfade Duration"
+      },
+      "crossfade_type": {
+        "name": "Crossfade Type"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Cycle"
+      },
+      "1": {
+        "name": "Audio List"
+      }
+    }
+  },
+  "AudioToFrameCount": {
+    "display_name": "Audio to Frame Count",
+    "inputs": {
+      "audio": {
+        "name": "Audio"
+      },
+      "fps": {
+        "name": "FPS"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Frames"
+      }
+    }
+  },
+  "PromptListGenerator": {
+    "display_name": "Prompt List Generator",
+    "inputs": {
+      "text": {
+        "name": "Text"
+      },
+      "delimiter": {
+        "name": "Delimiter"
+      },
+      "use_regex": {
+        "name": "Use Regex"
+      },
+      "keep_delimiter": {
+        "name": "Keep Delimiter"
+      },
+      "start_index": {
+        "name": "Start Index"
+      },
+      "skip_every": {
+        "name": "Skip Every"
+      },
+      "max_count": {
+        "name": "Max Count"
+      },
+      "skip_first_index": {
+        "name": "Skip First Index"
+      },
+      "random_order": {
+        "name": "Random Order"
+      },
+      "seed": {
+        "name": "Seed"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Text List"
+      },
+      "1": {
+        "name": "Total Index"
+      }
+    }
+  },
+  "NumberListGenerator": {
+    "display_name": "Number List Generator",
+    "inputs": {
+      "min_value": {
+        "name": "Min Value"
+      },
+      "max_value": {
+        "name": "Max Value"
+      },
+      "step": {
+        "name": "Step"
+      },
+      "count": {
+        "name": "Count"
+      },
+      "random": {
+        "name": "Random"
+      },
+      "seed": {
+        "name": "Seed"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Int List"
+      },
+      "1": {
+        "name": "Float List"
+      },
+      "2": {
+        "name": "Total Count"
+      }
+    }
+  },
+  "AudioListCombine": {
+    "display_name": "Audio List Combine",
+    "inputs": {
+      "audio_list": {
+        "name": "Audio List"
+      },
+      "combine_mode": {
+        "name": "Combine Mode"
+      },
+      "fade_duration": {
+        "name": "Fade Duration"
+      },
+      "normalize_output": {
+        "name": "Normalize Output"
+      },
+      "target_sample_rate": {
+        "name": "Target Sample Rate"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Audio"
+      }
+    }
+  },
+  "CeilDivide": {
+    "display_name": "Ceil Divide",
+    "inputs": {
+      "a": {
+        "name": "A"
+      },
+      "b": {
+        "name": "B"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Result"
+      }
+    }
+  },
+  "FrameMatch": {
+    "display_name": "Frame Match",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "target_frames": {
+        "name": "Target Frames"
+      },
+      "fill_mode": {
+        "name": "Fill Mode"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Images"
+      }
+    }
+  },
+  "SimpleWildCardPlayer": {
+    "display_name": "Simple WildCard Player",
+    "inputs": {
+      "basic_prompt": {
+        "name": "Basic Prompt"
+      },
+      "wildcard_template": {
+        "name": "Wildcard Template"
+      },
+      "wildcard_files": {
+        "name": "Wildcard Files"
+      },
+      "batch_count": {
+        "name": "Batch Count"
+      },
+      "seed": {
+        "name": "Seed"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Prompt List"
+      }
+    }
+  },
+  "QwenGPUInference": {
+    "display_name": "Qwen TE LLM",
+    "inputs": {
+      "user_prompt": {
+        "name": "User Prompt"
+      },
+      "prompt_template": {
+        "name": "Prompt Template"
+      },
+      "system_prompt": {
+        "name": "System Prompt"
+      },
+      "max_new_tokens": {
+        "name": "Max New Tokens"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "keep_model_loaded": {
+        "name": "Keep Model Loaded"
+      },
+      "use_flash_attention": {
+        "name": "Use Flash Attention"
+      },
+      "use_quantization": {
+        "name": "Use Quantization"
+      },
+      "top_p": {
+        "name": "Top P"
+      },
+      "top_k": {
+        "name": "Top K"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Text"
+      },
+      "1": {
+        "name": "Used Seed"
+      }
+    }
+  },
+  "GGUFInference": {
+    "display_name": "GGUF LLM",
+    "inputs": {
+      "model": {
+        "name": "Model"
+      },
+      "prompt": {
+        "name": "Prompt"
+      },
+      "prompt_template": {
+        "name": "Prompt Template"
+      },
+      "system_prompt": {
+        "name": "System Prompt"
+      },
+      "max_tokens": {
+        "name": "Max Tokens"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "top_p": {
+        "name": "Top P"
+      },
+      "top_k": {
+        "name": "Top K"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "keep_model_loaded": {
+        "name": "Keep Model Loaded"
+      },
+      "mmproj_file": {
+        "name": "MMProj File"
+      },
+      "image_1": {
+        "name": "Image 1"
+      },
+      "image_2": {
+        "name": "Image 2"
+      },
+      "image_3": {
+        "name": "Image 3"
+      },
+      "auto_install_llama_cpp": {
+        "name": "Auto Install Llama CPP"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Text"
+      },
+      "1": {
+        "name": "Used Seed"
+      }
+    }
+  },
+  "BatchToPSD": {
+    "display_name": "Batch to PSD",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "filename_prefix": {
+        "name": "Filename Prefix"
+      },
+      "reverse_layer_order": {
+        "name": "Reverse Layer Order"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Message"
+      }
+    }
+  },
+  "ModelDownloader": {
+    "display_name": "Model Downloader",
+    "inputs": {
+      "download_list": {
+        "name": "Download List"
+      },
+      "use_s3c": {
+        "name": "Use S3C"
+      },
+      "use_custom_path": {
+        "name": "Use Custom Path"
+      },
+      "chunk_size_mb": {
+        "name": "Chunk Size (MB)"
+      },
+      "max_workers": {
+        "name": "Max Workers"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Status Message"
+      }
+    }
+  },
+  "OpenAIHelper": {
+    "display_name": "OpenAI Helper",
+    "inputs": {
+      "endpoint": {
+        "name": "Endpoint"
+      },
+      "api_key": {
+        "name": "API Key"
+      },
+      "model_name": {
+        "name": "Model Name"
+      },
+      "user_prompt": {
+        "name": "User Prompt"
+      },
+      "prompt_template": {
+        "name": "Prompt Template"
+      },
+      "max_tokens": {
+        "name": "Max Tokens"
+      },
+      "system_prompt": {
+        "name": "System Prompt"
+      },
+      "image1": {
+        "name": "Image 1"
+      },
+      "image2": {
+        "name": "Image 2"
+      },
+      "image3": {
+        "name": "Image 3"
+      },
+      "audio": {
+        "name": "Audio"
+      },
+      "file_path": {
+        "name": "File Path"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Text"
+      },
+      "1": {
+        "name": "Model Name List"
+      }
+    }
+  },
+  "OpenRouterLLM": {
+    "display_name": "OpenRouter LLM",
+    "inputs": {
+      "api_key": {
+        "name": "API Key"
+      },
+      "user_prompt": {
+        "name": "User Prompt"
+      },
+      "text_model": {
+        "name": "Text Model"
+      },
+      "prompt_template": {
+        "name": "Prompt Template"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "custom_model": {
+        "name": "Custom Model"
+      },
+      "system_prompt": {
+        "name": "System Prompt"
+      },
+      "enable_resize": {
+        "name": "Enable Resize"
+      },
+      "target_width": {
+        "name": "Target Width"
+      },
+      "target_height": {
+        "name": "Target Height"
+      },
+      "resize_method": {
+        "name": "Resize Method"
+      },
+      "image_input_1": {
+        "name": "Image Input 1"
+      },
+      "image_input_2": {
+        "name": "Image Input 2"
+      },
+      "image_input_3": {
+        "name": "Image Input 3"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Image Output"
+      },
+      "1": {
+        "name": "Text Output"
+      }
+    }
+  },
+  "ChineseConverter": {
+    "display_name": "Chinese Converter (Simp⇄Trad)",
+    "inputs": {
+      "input_text": {
+        "name": "Input Text"
+      },
+      "simp_to_trad": {
+        "name": "Simplified to Traditional"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Converted Text"
+      }
+    }
+  },
+  "ChineseTranslate": {
+    "display_name": "Chinese to English Translate",
+    "inputs": {
+      "input_text": {
+        "name": "Input Text"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Translated Text"
+      }
+    }
+  },
+  "AutoWhiteBalance": {
+    "display_name": "Auto White Balance",
+    "inputs": {
+      "image": {
+        "name": "Image"
+      },
+      "method": {
+        "name": "Method"
+      },
+      "strength": {
+        "name": "Strength"
+      },
+      "preserve_brightness": {
+        "name": "Preserve Brightness"
+      },
+      "clip_values": {
+        "name": "Clip Values"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Image"
+      }
+    }
+  }
+}

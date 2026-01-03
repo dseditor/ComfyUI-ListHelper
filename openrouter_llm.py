@@ -54,7 +54,7 @@ class OpenRouterLLM:
         """添加自定義模型到models.json檔案"""
         try:
             current_models = self._load_models()
-            
+
             # 檢查模型是否已存在
             if model_name not in current_models:
                 current_models.append(model_name)
@@ -64,20 +64,63 @@ class OpenRouterLLM:
                 print(f"ℹ️ 模型已存在: {model_name}")
         except Exception as e:
             print(f"❌ 添加自定義模型失敗: {e}")
-    
+
+    @classmethod
+    def _get_prompt_templates(cls):
+        """Get all .md template files from Prompt folder"""
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        prompt_dir = os.path.join(current_dir, "Prompt")
+
+        templates = []
+
+        if os.path.exists(prompt_dir):
+            for file in os.listdir(prompt_dir):
+                if file.lower().endswith('.md'):
+                    templates.append(file)
+
+        if not templates:
+            return ["No Template"]
+
+        return sorted(templates)
+
+    @classmethod
+    def _load_template_content(cls, template_name):
+        """Load template content"""
+        if template_name == "No Template" or template_name == "Custom":
+            return ""
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        template_path = os.path.join(current_dir, "Prompt", template_name)
+
+        if os.path.exists(template_path):
+            try:
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except:
+                return ""
+
+        return ""
+
     @classmethod
     def INPUT_TYPES(cls):
         # 從JSON檔案載入模型列表
         text_models = cls._load_models()
-        
+
         # 在列表末尾添加"Add Custom Model..."選項
         text_models_with_add = text_models + ["Add Custom Model..."]
-        
+
+        # 獲取範本列表
+        templates = cls._get_prompt_templates()
+        template_options = ["Custom"] + templates
+
         return {
             "required": {
                 "api_key": ("STRING", {"multiline": False, "default": "", "placeholder": "輸入您的OpenRouter API金鑰"}),
                 "user_prompt": ("STRING", {"multiline": True, "default": "Please analyze the provided content."}),
                 "text_model": (text_models_with_add, {"default": text_models_with_add[0]}),
+                "prompt_template": (template_options, {
+                    "default": template_options[0] if template_options else "Custom"
+                }),
                 "seed": ("INT", {"default": -1, "min": -1, "max": 0xffffffffffffffff, "step": 1, "tooltip": "隨機種子控制(-1為隨機)。注意：圖像生成模型(如Gemini)不支援seed參數"}),
             },
             "optional": {
@@ -96,7 +139,7 @@ class OpenRouterLLM:
     RETURN_TYPES = ("IMAGE", "STRING")
     RETURN_NAMES = ("image_output", "text_output")
     FUNCTION = "process_llm"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/LLM"
     
     def __init__(self):
         self.config_file = "config.json"
@@ -379,11 +422,11 @@ class OpenRouterLLM:
             print(f"❌ 圖像縮放失敗: {e}")
             return pil_image
 
-    def process_llm(self, api_key, user_prompt, text_model, seed=-1, custom_model="", system_prompt=None, 
+    def process_llm(self, api_key, user_prompt, text_model, prompt_template, seed=-1, custom_model="", system_prompt=None,
                    enable_resize=False, target_width=512, target_height=512, resize_method="lanczos",
                    image_input_1=None, image_input_2=None, image_input_3=None):
         """處理LLM請求"""
-        
+
         # 獲取API金鑰
         actual_api_key = self._get_api_key(api_key)
         if not actual_api_key:
@@ -391,7 +434,16 @@ class OpenRouterLLM:
             default_height = target_height if enable_resize else 512
             default_width = target_width if enable_resize else 512
             return (torch.zeros(*self._get_default_tensor_size(enable_resize, target_width, target_height)), "❌ 錯誤: 請提供OpenRouter API金鑰")
-        
+
+        # 加載並應用範本
+        template_content = ""
+        if prompt_template != "Custom":
+            template_content = self._load_template_content(prompt_template)
+
+        # 如果範本內容存在，使用範本內容替換 system_prompt
+        if template_content:
+            system_prompt = template_content
+
         # 處理種子設定 - Control After Generate支援
         if seed == -1:
             # 隨機種子
@@ -399,7 +451,7 @@ class OpenRouterLLM:
         else:
             # 固定種子
             actual_seed = seed
-        
+
         # 處理模型選擇
         if text_model == "Add Custom Model...":
             if not custom_model or not custom_model.strip():

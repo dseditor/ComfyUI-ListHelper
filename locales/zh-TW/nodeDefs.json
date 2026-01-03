@@ -1,0 +1,517 @@
+{
+  "AudioListGenerator": {
+    "display_name": "音訊分割為列表",
+    "inputs": {
+      "waveform": {
+        "name": "波形"
+      },
+      "videofps": {
+        "name": "影片幀率"
+      },
+      "samplefps": {
+        "name": "取樣幀率"
+      },
+      "pad_last_segment": {
+        "name": "填充最後片段"
+      },
+      "crossfade_duration": {
+        "name": "交叉淡化時長"
+      },
+      "crossfade_type": {
+        "name": "交叉淡化類型"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "循環"
+      },
+      "1": {
+        "name": "音訊列表"
+      }
+    }
+  },
+  "AudioToFrameCount": {
+    "display_name": "音訊轉幀數",
+    "inputs": {
+      "audio": {
+        "name": "音訊"
+      },
+      "fps": {
+        "name": "幀率"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "幀數"
+      }
+    }
+  },
+  "PromptListGenerator": {
+    "display_name": "提示詞列表產生器",
+    "inputs": {
+      "text": {
+        "name": "文字"
+      },
+      "delimiter": {
+        "name": "分隔符"
+      },
+      "use_regex": {
+        "name": "使用正規表示式"
+      },
+      "keep_delimiter": {
+        "name": "保留分隔符"
+      },
+      "start_index": {
+        "name": "起始索引"
+      },
+      "skip_every": {
+        "name": "跳過間隔"
+      },
+      "max_count": {
+        "name": "最大數量"
+      },
+      "skip_first_index": {
+        "name": "跳過第一個索引"
+      },
+      "random_order": {
+        "name": "隨機排序"
+      },
+      "seed": {
+        "name": "種子"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "文字列表"
+      },
+      "1": {
+        "name": "總索引"
+      }
+    }
+  },
+  "NumberListGenerator": {
+    "display_name": "數字列表產生器",
+    "inputs": {
+      "min_value": {
+        "name": "最小值"
+      },
+      "max_value": {
+        "name": "最大值"
+      },
+      "step": {
+        "name": "步長"
+      },
+      "count": {
+        "name": "數量"
+      },
+      "random": {
+        "name": "隨機"
+      },
+      "seed": {
+        "name": "種子"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "整數列表"
+      },
+      "1": {
+        "name": "浮點數列表"
+      },
+      "2": {
+        "name": "總數量"
+      }
+    }
+  },
+  "AudioListCombine": {
+    "display_name": "音訊列表合併",
+    "inputs": {
+      "audio_list": {
+        "name": "音訊列表"
+      },
+      "combine_mode": {
+        "name": "合併模式"
+      },
+      "fade_duration": {
+        "name": "淡化時長"
+      },
+      "normalize_output": {
+        "name": "標準化輸出"
+      },
+      "target_sample_rate": {
+        "name": "目標取樣率"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "音訊"
+      }
+    }
+  },
+  "CeilDivide": {
+    "display_name": "無條件進位除法",
+    "inputs": {
+      "a": {
+        "name": "A"
+      },
+      "b": {
+        "name": "B"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "結果"
+      }
+    }
+  },
+  "FrameMatch": {
+    "display_name": "幀數匹配",
+    "inputs": {
+      "images": {
+        "name": "圖像"
+      },
+      "target_frames": {
+        "name": "目標幀數"
+      },
+      "fill_mode": {
+        "name": "填充模式"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "圖像"
+      }
+    }
+  },
+  "SimpleWildCardPlayer": {
+    "display_name": "簡易萬用字元播放器",
+    "inputs": {
+      "basic_prompt": {
+        "name": "基礎提示詞"
+      },
+      "wildcard_template": {
+        "name": "萬用字元範本"
+      },
+      "wildcard_files": {
+        "name": "萬用字元檔案"
+      },
+      "batch_count": {
+        "name": "批次數量"
+      },
+      "seed": {
+        "name": "種子"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示詞列表"
+      }
+    }
+  },
+  "QwenGPUInference": {
+    "display_name": "Qwen TE 語言模型",
+    "inputs": {
+      "user_prompt": {
+        "name": "使用者提示詞"
+      },
+      "prompt_template": {
+        "name": "提示詞範本"
+      },
+      "system_prompt": {
+        "name": "系統提示詞"
+      },
+      "max_new_tokens": {
+        "name": "最大生成標記數"
+      },
+      "temperature": {
+        "name": "溫度"
+      },
+      "seed": {
+        "name": "種子"
+      },
+      "keep_model_loaded": {
+        "name": "保持模型載入"
+      },
+      "use_flash_attention": {
+        "name": "使用 Flash Attention"
+      },
+      "use_quantization": {
+        "name": "使用量化"
+      },
+      "top_p": {
+        "name": "Top P"
+      },
+      "top_k": {
+        "name": "Top K"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "文字"
+      },
+      "1": {
+        "name": "使用的種子"
+      }
+    }
+  },
+  "GGUFInference": {
+    "display_name": "GGUF 語言模型",
+    "inputs": {
+      "model": {
+        "name": "模型"
+      },
+      "prompt": {
+        "name": "提示詞"
+      },
+      "prompt_template": {
+        "name": "提示詞範本"
+      },
+      "system_prompt": {
+        "name": "系統提示詞"
+      },
+      "max_tokens": {
+        "name": "最大標記數"
+      },
+      "temperature": {
+        "name": "溫度"
+      },
+      "top_p": {
+        "name": "Top P"
+      },
+      "top_k": {
+        "name": "Top K"
+      },
+      "seed": {
+        "name": "種子"
+      },
+      "keep_model_loaded": {
+        "name": "保持模型載入"
+      },
+      "mmproj_file": {
+        "name": "MMProj 檔案"
+      },
+      "image_1": {
+        "name": "圖像 1"
+      },
+      "image_2": {
+        "name": "圖像 2"
+      },
+      "image_3": {
+        "name": "圖像 3"
+      },
+      "auto_install_llama_cpp": {
+        "name": "自動安裝 Llama CPP"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "文字"
+      },
+      "1": {
+        "name": "使用的種子"
+      }
+    }
+  },
+  "BatchToPSD": {
+    "display_name": "批次轉 PSD",
+    "inputs": {
+      "images": {
+        "name": "圖像"
+      },
+      "filename_prefix": {
+        "name": "檔案名稱前綴"
+      },
+      "reverse_layer_order": {
+        "name": "反轉圖層順序"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "訊息"
+      }
+    }
+  },
+  "ModelDownloader": {
+    "display_name": "模型下載器",
+    "inputs": {
+      "download_list": {
+        "name": "下載列表"
+      },
+      "use_s3c": {
+        "name": "使用 S3C"
+      },
+      "use_custom_path": {
+        "name": "使用自訂路徑"
+      },
+      "chunk_size_mb": {
+        "name": "分塊大小 (MB)"
+      },
+      "max_workers": {
+        "name": "最大執行緒數"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "狀態訊息"
+      }
+    }
+  },
+  "OpenAIHelper": {
+    "display_name": "OpenAI 輔助工具",
+    "inputs": {
+      "endpoint": {
+        "name": "端點"
+      },
+      "api_key": {
+        "name": "API 金鑰"
+      },
+      "model_name": {
+        "name": "模型名稱"
+      },
+      "user_prompt": {
+        "name": "使用者提示詞"
+      },
+      "prompt_template": {
+        "name": "提示詞範本"
+      },
+      "max_tokens": {
+        "name": "最大標記數"
+      },
+      "system_prompt": {
+        "name": "系統提示詞"
+      },
+      "image1": {
+        "name": "圖像 1"
+      },
+      "image2": {
+        "name": "圖像 2"
+      },
+      "image3": {
+        "name": "圖像 3"
+      },
+      "audio": {
+        "name": "音訊"
+      },
+      "file_path": {
+        "name": "檔案路徑"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "文字"
+      },
+      "1": {
+        "name": "模型名稱列表"
+      }
+    }
+  },
+  "OpenRouterLLM": {
+    "display_name": "OpenRouter 語言模型",
+    "inputs": {
+      "api_key": {
+        "name": "API 金鑰"
+      },
+      "user_prompt": {
+        "name": "使用者提示詞"
+      },
+      "text_model": {
+        "name": "文字模型"
+      },
+      "prompt_template": {
+        "name": "提示詞範本"
+      },
+      "seed": {
+        "name": "種子"
+      },
+      "custom_model": {
+        "name": "自訂模型"
+      },
+      "system_prompt": {
+        "name": "系統提示詞"
+      },
+      "enable_resize": {
+        "name": "啟用調整大小"
+      },
+      "target_width": {
+        "name": "目標寬度"
+      },
+      "target_height": {
+        "name": "目標高度"
+      },
+      "resize_method": {
+        "name": "縮放方法"
+      },
+      "image_input_1": {
+        "name": "圖像輸入 1"
+      },
+      "image_input_2": {
+        "name": "圖像輸入 2"
+      },
+      "image_input_3": {
+        "name": "圖像輸入 3"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "圖像輸出"
+      },
+      "1": {
+        "name": "文字輸出"
+      }
+    }
+  },
+  "ChineseConverter": {
+    "display_name": "中文簡繁轉換",
+    "inputs": {
+      "input_text": {
+        "name": "輸入文字"
+      },
+      "simp_to_trad": {
+        "name": "簡體轉繁體"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "轉換後文字"
+      }
+    }
+  },
+  "ChineseTranslate": {
+    "display_name": "中文翻譯英文",
+    "inputs": {
+      "input_text": {
+        "name": "輸入文字"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "翻譯後文字"
+      }
+    }
+  },
+  "AutoWhiteBalance": {
+    "display_name": "自動白平衡",
+    "inputs": {
+      "image": {
+        "name": "圖像"
+      },
+      "method": {
+        "name": "方法"
+      },
+      "strength": {
+        "name": "強度"
+      },
+      "preserve_brightness": {
+        "name": "保持亮度"
+      },
+      "clip_values": {
+        "name": "裁剪數值"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "圖像"
+      }
+    }
+  }
+}

@@ -53,9 +53,49 @@ class OpenAIHelper:
             print(f"❌ 保存openaimodel.json失敗: {e}")
 
     @classmethod
+    def _get_prompt_templates(cls):
+        """Get all .md template files from Prompt folder"""
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        prompt_dir = os.path.join(current_dir, "Prompt")
+
+        templates = []
+
+        if os.path.exists(prompt_dir):
+            for file in os.listdir(prompt_dir):
+                if file.lower().endswith('.md'):
+                    templates.append(file)
+
+        if not templates:
+            return ["No Template"]
+
+        return sorted(templates)
+
+    @classmethod
+    def _load_template_content(cls, template_name):
+        """Load template content"""
+        if template_name == "No Template" or template_name == "Custom":
+            return ""
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        template_path = os.path.join(current_dir, "Prompt", template_name)
+
+        if os.path.exists(template_path):
+            try:
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except:
+                return ""
+
+        return ""
+
+    @classmethod
     def INPUT_TYPES(cls):
         # 載入保存的配置
         config = cls._load_config()
+
+        # 獲取範本列表
+        templates = cls._get_prompt_templates()
+        template_options = ["Custom"] + templates
 
         return {
             "required": {
@@ -78,8 +118,11 @@ class OpenAIHelper:
                     "multiline": True,
                     "default": "請分析提供的內容。"
                 }),
+                "prompt_template": (template_options, {
+                    "default": template_options[0] if template_options else "Custom"
+                }),
                 "max_tokens": ("INT", {
-                    "default": 2000,
+                    "default": 4096,
                     "min": 1,
                     "max": 128000,
                     "step": 1
@@ -101,7 +144,7 @@ class OpenAIHelper:
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("text", "model_name_list")
     FUNCTION = "process_openai"
-    CATEGORY = "ListHelper"
+    CATEGORY = "ListHelper/LLM"
 
     def __init__(self):
         pass
@@ -288,7 +331,7 @@ class OpenAIHelper:
             print(f"❌ API呼叫異常: {e}")
             return {"error": {"message": str(e)}}
 
-    def process_openai(self, endpoint, api_key, model_name, user_prompt, max_tokens,
+    def process_openai(self, endpoint, api_key, model_name, user_prompt, prompt_template, max_tokens,
                        system_prompt=None, image1=None, image2=None, image3=None,
                        audio=None, file_path=None):
         """處理OpenAI請求"""
@@ -308,6 +351,15 @@ class OpenAIHelper:
 
         # 獲取模型列表
         model_list = self._get_model_list(endpoint.strip(), api_key.strip())
+
+        # 加載並應用範本
+        template_content = ""
+        if prompt_template != "Custom":
+            template_content = self._load_template_content(prompt_template)
+
+        # 如果範本內容存在，使用範本內容替換 system_prompt
+        if template_content:
+            system_prompt = template_content
 
         # 準備消息內容
         messages = []
