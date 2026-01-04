@@ -2,7 +2,45 @@
 
 ## 📝 概述
 
-這個模板讓您可以輕鬆生成多組圖片提示詞，只需用自然語言描述需求，AI 就會自動生成可用的提示詞列表。
+這個模板讓您可以輕鬆生成多組圖片提示詞，使用與寫真雜誌相同的 JSON 格式（但去除封面、封底等雜誌資訊），只保留 `pages` 部分。
+
+---
+
+## 🎯 JSON 格式
+
+### 輸出結構
+
+```json
+{
+  "pages": [
+    {
+      "page_number": 1,
+      "theme": "主題名稱",
+      "description": "簡短描述",
+      "image_prompt": "詳細的英文圖片生成提示詞"
+    },
+    {
+      "page_number": 2,
+      "theme": "主題名稱",
+      "description": "簡短描述",
+      "image_prompt": "詳細的英文圖片生成提示詞"
+    }
+  ]
+}
+```
+
+### 自動提取
+
+LLM 節點會自動從 JSON 中提取所有 `image_prompt`，輸出為提示詞列表：
+
+```
+prompts 輸出 = [
+  "image_prompt from page 1",
+  "image_prompt from page 2",
+  "image_prompt from page 3",
+  ...
+]
+```
 
 ---
 
@@ -10,20 +48,15 @@
 
 ### 1. 選擇模板
 
-在 LLM 節點（GGUF、OpenAI Helper 等）中：
+在 LLM 節點中：
 - **Prompt Template**: 選擇 `simple_prompt_list.md`
 
 ### 2. 輸入需求
 
-在 **User Prompt** 中輸入您的需求，格式如下：
+在 **User Prompt** 中輸入：
 
 ```
 產生 [數量] 組 [主題] 的提示詞，風格為 [風格]，場景為 [場景]
-```
-
-或英文：
-```
-Generate [number] [subject] prompts, [style] style, [scene] setting
 ```
 
 ### 3. 連接節點
@@ -32,17 +65,15 @@ Generate [number] [subject] prompts, [style] style, [scene] setting
 [LLM 節點]
 ├─ prompt_template: simple_prompt_list.md
 ├─ user_prompt: "產生10組文具的提示詞，風格為拉拉熊，場景為台灣街景"
-└─ prompts → [圖片生成節點]
+├─ text (輸出) → 完整 JSON
+└─ prompts (輸出) → 自動提取的提示詞列表
+    ↓
+[圖片生成節點]
 ```
-
-### 4. 獲取結果
-
-- **text 輸出**: 完整的 JSON 格式
-- **prompts 輸出**: 自動提取的提示詞列表（可直接用於圖片生成）
 
 ---
 
-## 📋 範例
+## 📋 完整範例
 
 ### 範例 1: 文具主題
 
@@ -51,12 +82,34 @@ Generate [number] [subject] prompts, [style] style, [scene] setting
 產生10組文具的提示詞，風格為拉拉熊，場景為台灣街景
 ```
 
-**輸出** (prompts):
+**JSON 輸出** (text):
+```json
+{
+  "pages": [
+    {
+      "page_number": 1,
+      "theme": "Rilakkuma Pencil Case",
+      "description": "拉拉熊鉛筆盒在台灣街頭",
+      "image_prompt": "A cute Rilakkuma-style pencil case with bear ears and brown color scheme, placed on a traditional Taiwanese street food stall counter, colorful street signs and lanterns in background, warm afternoon sunlight, kawaii aesthetic, product photography, high quality, detailed, 4k"
+    },
+    {
+      "page_number": 2,
+      "theme": "Rilakkuma Notebook",
+      "description": "拉拉熊筆記本在夜市",
+      "image_prompt": "Rilakkuma-themed notebook with cute bear pattern cover, sitting on a red plastic stool at Taiwan night market, neon lights and food stalls in background, vibrant evening atmosphere, kawaii illustration style, warm color palette, professional product shot, detailed, high resolution"
+    }
+    // ... 更多頁面
+  ]
+}
 ```
-1. "A cute Rilakkuma-style pencil case with bear ears, placed on a traditional Taiwanese street food stall..."
-2. "Rilakkuma-themed notebook with brown bear pattern, sitting on a red plastic stool at a Taiwan night market..."
-3. "A set of Rilakkuma erasers shaped like bears, displayed on a vintage Taiwanese shop counter..."
-...
+
+**Prompts 輸出** (自動提取):
+```
+[
+  "A cute Rilakkuma-style pencil case with bear ears and brown color scheme, placed on a traditional Taiwanese street food stall counter, colorful street signs and lanterns in background, warm afternoon sunlight, kawaii aesthetic, product photography, high quality, detailed, 4k",
+  "Rilakkuma-themed notebook with cute bear pattern cover, sitting on a red plastic stool at Taiwan night market, neon lights and food stalls in background, vibrant evening atmosphere, kawaii illustration style, warm color palette, professional product shot, detailed, high resolution",
+  ...
+]
 ```
 
 ---
@@ -68,112 +121,73 @@ Generate [number] [subject] prompts, [style] style, [scene] setting
 Generate 5 food prompts, realistic style, restaurant setting
 ```
 
-**輸出** (prompts):
+**Prompts 輸出**:
 ```
-1. "A gourmet burger with melted cheese and fresh vegetables, served on a wooden board..."
-2. "Perfectly plated sushi arrangement on black slate, modern Japanese restaurant interior..."
-3. "Steaming bowl of ramen with soft-boiled egg and pork belly, cozy ramen shop atmosphere..."
-...
-```
-
----
-
-### 範例 3: 動物主題
-
-**輸入**：
-```
-產生8組貓咪的提示詞，風格為水彩畫，場景為日式庭園
-```
-
-**輸出** (prompts):
-```
-1. "A fluffy white cat sitting on a stone lantern, watercolor painting style, Japanese zen garden..."
-2. "Calico cat playing with koi fish in a pond, soft watercolor brushstrokes, traditional Japanese garden..."
-3. "Orange tabby cat napping under a cherry blossom tree, delicate watercolor art, peaceful Japanese courtyard..."
-...
+[
+  "A gourmet burger with melted cheese, fresh lettuce, tomato, and caramelized onions, served on rustic wooden board in upscale restaurant, dramatic side lighting, professional food photography, steam rising, ultra realistic textures, 8k quality, mouth-watering presentation",
+  "Perfectly plated sushi arrangement on black slate plate, various nigiri and maki rolls, modern Japanese restaurant interior background, minimalist aesthetic, natural window light, high-end dining atmosphere, sharp focus on details, realistic textures, professional culinary photography, 4k",
+  ...
+]
 ```
 
 ---
 
-## 🎨 自訂參數
+## 🎨 JSON 欄位說明
 
-### 主題 (Subject)
-- 文具、食物、動物、植物、建築、人物等
-- 可以更具體：「可愛的文具」、「健康食物」、「幻想生物」
+### page_number
+- **類型**: 整數
+- **說明**: 頁面序號，從 1 開始
+- **範例**: 1, 2, 3, ...
 
-### 風格 (Style)
-- **卡通風格**: 拉拉熊、迪士尼、吉卜力、皮克斯
-- **藝術風格**: 水彩、油畫、素描、版畫
-- **攝影風格**: 寫實、專業攝影、產品攝影、街拍
-- **設計風格**: 極簡、復古、賽博龐克、蒸汽龐克
+### theme
+- **類型**: 字串（英文）
+- **說明**: 簡短的主題名稱
+- **範例**: "Rilakkuma Pencil Case", "Gourmet Burger"
 
-### 場景 (Scene)
-- **地點**: 台灣街景、日本庭園、歐洲街道、咖啡廳
-- **環境**: 室內、戶外、工作室、自然環境
-- **氛圍**: 溫馨、神秘、活潑、寧靜
+### description
+- **類型**: 字串（中文）
+- **說明**: 簡短描述（20字內）
+- **範例**: "拉拉熊鉛筆盒在台灣街頭", "高級漢堡餐點"
 
-### 數量 (Number)
-- 建議 5-20 組
-- 太少可能不夠多樣化
-- 太多可能降低品質
-
----
-
-## 🔧 進階用法
-
-### 添加額外要求
-
-```
-產生10組文具的提示詞，風格為拉拉熊，場景為台灣街景，要求：
-- 每個提示詞都要包含特定的文具類型
-- 強調台灣特色元素
-- 適合產品攝影
-```
-
-### 指定構圖
-
-```
-Generate 5 cat prompts, watercolor style, Japanese garden, with:
-- Close-up shots
-- Natural lighting
-- Peaceful atmosphere
-```
-
-### 混合風格
-
-```
-產生8組甜點的提示詞，混合日式和法式風格，咖啡廳場景
-```
+### image_prompt
+- **類型**: 字串（英文）
+- **說明**: 詳細的圖片生成提示詞（100-150 tokens）
+- **包含**: 主體、風格、場景、構圖、光線、品質標籤
+- **範例**: "A cute Rilakkuma-style pencil case with bear ears..."
 
 ---
 
-## 📊 完整工作流程範例
+## 📊 完整工作流程
 
-### 方案 A: 使用 GGUF LLM
+### 使用 GGUF LLM
 
 ```
 [GGUF LLM]
 ├─ model: Qwen3-4B-Q5_K_M.gguf
 ├─ prompt: "產生10組文具的提示詞，風格為拉拉熊，場景為台灣街景"
 ├─ prompt_template: simple_prompt_list.md
-├─ max_tokens: 2048
-└─ prompts (輸出)
-    ↓
+├─ max_tokens: 3072
+└─ outputs:
+    ├─ text: 完整 JSON
+    └─ prompts: ["prompt1", "prompt2", ...] ⭐
+        ↓
 [圖片生成節點]
-├─ prompt: (連接 prompts 輸出)
+├─ prompt: (連接 prompts)
 └─ batch_size: 10
 ```
 
-### 方案 B: 使用 OpenAI Helper
+### 使用 OpenAI Helper
 
 ```
 [OpenAI Helper]
 ├─ config_template: openai.json
 ├─ user_prompt: "Generate 5 food prompts, realistic style, restaurant setting"
 ├─ prompt_template: simple_prompt_list.md
-├─ max_tokens: 1024
-└─ prompts (輸出)
-    ↓
+├─ max_tokens: 2048
+└─ outputs:
+    ├─ text: 完整 JSON
+    └─ prompts: ["prompt1", "prompt2", ...] ⭐
+        ↓
 [圖片生成節點]
 ```
 
@@ -181,25 +195,48 @@ Generate 5 cat prompts, watercolor style, Japanese garden, with:
 
 ## ✨ 優勢
 
-### 1. 簡單易用
-- ✅ 不需要學習複雜的提示詞語法
-- ✅ 用自然語言描述需求即可
-- ✅ AI 自動生成專業提示詞
+### 1. 標準化格式 ⭐
+- ✅ 使用與寫真雜誌相同的 JSON 結構
+- ✅ 自動解析 `pages` 中的 `image_prompt`
+- ✅ 無需額外的解析節點
 
-### 2. 批量生成
+### 2. 結構化資訊 ⭐
+- ✅ 每個提示詞都有主題和描述
+- ✅ 頁面編號便於管理
+- ✅ 可追蹤每個提示詞的用途
+
+### 3. 批量生成 ⭐
 - ✅ 一次生成多組提示詞
 - ✅ 自動保持風格一致性
 - ✅ 提供多樣化變化
 
-### 3. 自動解析
-- ✅ JSON 格式自動解析
+### 4. 自動提取 ⭐
+- ✅ LLM 節點自動提取 `image_prompt`
 - ✅ 直接輸出提示詞列表
-- ✅ 無需手動處理
+- ✅ 可直接用於圖片生成
 
-### 4. 靈活自訂
-- ✅ 支援任意主題
-- ✅ 支援任意風格
-- ✅ 支援任意場景
+---
+
+## 🎯 最佳實踐
+
+### ✅ 好的輸入
+
+```
+產生10組文具的提示詞，風格為拉拉熊，場景為台灣街景
+```
+- 明確的數量
+- 具體的主題
+- 清晰的風格
+- 詳細的場景
+
+### ❌ 不好的輸入
+
+```
+給我一些文具
+```
+- 數量不明確
+- 缺少風格
+- 缺少場景
 
 ---
 
@@ -207,71 +244,85 @@ Generate 5 cat prompts, watercolor style, Japanese garden, with:
 
 ### JSON 格式要求
 
-LLM 必須輸出有效的 JSON 格式：
-```json
-{
-  "prompts": [
-    "prompt 1",
-    "prompt 2"
-  ]
-}
-```
+1. **必須包含 `pages` 陣列**
+2. **每個 page 必須有**:
+   - `page_number` (整數)
+   - `theme` (字串)
+   - `description` (字串)
+   - `image_prompt` (字串)
+3. **page_number 必須從 1 開始連續**
 
 ### 常見問題
 
-**Q: LLM 沒有輸出 JSON 格式怎麼辦？**
-A: 在 system_prompt 中強調「必須輸出 JSON 格式」，或使用更強大的模型。
-
 **Q: prompts 輸出是空的？**
-A: 檢查 LLM 的輸出是否包含有效的 JSON，確保 `prompts` 鍵存在。
+
+A: 檢查：
+1. LLM 是否輸出了有效的 JSON
+2. JSON 中是否包含 `pages` 陣列
+3. 每個 page 是否有 `image_prompt` 欄位
 
 **Q: 提示詞品質不好？**
+
 A: 嘗試：
 - 使用更具體的描述
 - 添加更多細節要求
-- 使用更強大的 LLM 模型
+- 使用更強大的 LLM 模型（如 GPT-4）
 
-**Q: 數量不符？**
-A: 在需求中明確指定數量，例如「產生**恰好10組**提示詞」。
+**Q: JSON 格式錯誤？**
 
----
-
-## 🎯 最佳實踐
-
-### 1. 清晰的需求描述
-```
-✅ 好: "產生10組文具的提示詞，風格為拉拉熊，場景為台灣街景"
-❌ 差: "給我一些文具的提示詞"
-```
-
-### 2. 合理的數量
-```
-✅ 好: 5-20 組
-❌ 差: 100 組（可能降低品質）
-```
-
-### 3. 具體的風格
-```
-✅ 好: "風格為拉拉熊（可愛、柔和、棕色系）"
-❌ 差: "可愛風格"
-```
-
-### 4. 詳細的場景
-```
-✅ 好: "場景為台灣夜市（霓虹燈、小吃攤、熱鬧氛圍）"
-❌ 差: "台灣"
-```
+A: 確保：
+- LLM 輸出純 JSON（無 markdown 代碼塊）
+- JSON 語法正確（逗號、括號等）
+- 所有字串都用雙引號
 
 ---
 
 ## 📚 相關文件
 
-- **模板文件**: `Prompt/simple_prompt_list.md`
+- **模板**: `Prompt/simple_prompt_list.md`
 - **LLM 節點**: GGUF LLM, OpenAI Helper, OpenRouter LLM
-- **JSON 提取**: 自動從 LLM 輸出中提取
+- **JSON 提取**: 自動從 `pages[].image_prompt` 提取
+- **雜誌格式參考**: `DesignPrompt/photomagazine_json_output.md`
+
+---
+
+## 🔧 進階用法
+
+### 自訂欄位
+
+如果需要，可以在 `pages` 中添加額外欄位：
+
+```json
+{
+  "pages": [
+    {
+      "page_number": 1,
+      "theme": "Rilakkuma Pencil Case",
+      "description": "拉拉熊鉛筆盒在台灣街頭",
+      "image_prompt": "...",
+      "tags": ["stationery", "kawaii", "taiwan"],
+      "color_scheme": "brown, cream, pastel"
+    }
+  ]
+}
+```
+
+### 與雜誌製作器結合
+
+這個格式可以輕鬆擴展為完整的雜誌格式：
+
+```json
+{
+  "magazine_info": { ... },
+  "cover": { ... },
+  "pages": [ ... ],  ← 使用這個模板生成
+  "story_page": { ... },
+  "back_cover": { ... }
+}
+```
 
 ---
 
 **創建時間**: 2026-01-05
-**版本**: 1.0
-**用途**: 簡易批量生成圖片提示詞
+**版本**: 2.0
+**格式**: 與寫真雜誌相同的 JSON 結構（僅 pages 部分）
