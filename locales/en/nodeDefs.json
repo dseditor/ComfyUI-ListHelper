@@ -309,6 +309,9 @@
       },
       "1": {
         "name": "Used Seed"
+      },
+      "2": {
+        "name": "Prompts"
       }
     }
   },
@@ -359,6 +362,9 @@
   "OpenAIHelper": {
     "display_name": "OpenAI Helper",
     "inputs": {
+      "config_template": {
+        "name": "Config Template"
+      },
       "endpoint": {
         "name": "Endpoint"
       },
@@ -402,6 +408,9 @@
       },
       "1": {
         "name": "Model Name List"
+      },
+      "2": {
+        "name": "Prompts"
       }
     }
   },
@@ -581,6 +590,9 @@
       },
       "compress_pdf": {
         "name": "Compress PDF"
+      },
+      "disable_cover_layout": {
+        "name": "Disable Cover Layout"
       },
       "output_path": {
         "name": "Output Path"

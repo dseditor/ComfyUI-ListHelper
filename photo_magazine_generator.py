@@ -13,7 +13,7 @@ from reportlab.pdfbase.pdfmetrics import registerFont, stringWidth
 
 class PhotoMagazinePromptGenerator:
     """
-    寫真雜誌提示詞生成器
+    寫真雜誌prompt生成器
     從 prompts 資料夾讀取模板，注入使用者參數後輸出給 LLM
     """
     def __init__(self):
@@ -75,8 +75,8 @@ class PhotoMagazinePromptGenerator:
             # 轉換 tensor 為 PIL 圖片
             pil_image = self.tensor_to_pil(image_tensor)
             
-            # 構建人物特徵提取提示詞
-            feature_prompt = """請分析這張圖片中的人物，詳細描述以下特徵：
+            # 構建人物特徵提取prompt
+            feature_prompt = """請分析這images中的人物，詳細描述以下Features:
 1. 國籍/種族特徵
 2. 臉型（圓臉、瓜子臉、方臉等）
 3. 五官特徵（眼睛、鼻子、嘴巴）
@@ -88,7 +88,7 @@ class PhotoMagazinePromptGenerator:
             
             # 這裡需要調用 LLM 來分析圖片
             # 由於我們在節點中，可以返回一個提示讓使用者知道需要連接 LLM
-            print("📸 檢測到參考圖片，建議使用 LLM 節點提取人物特徵")
+            print("📸 Reference image detected, recommend using LLM node to extract person features")
             print("   提示：可以先用 Image to Prompt 節點分析圖片")
             
             # 返回基本的視覺描述（不依賴 LLM）
@@ -114,18 +114,18 @@ class PhotoMagazinePromptGenerator:
             template_path = os.path.join(os.path.dirname(__file__), "DesignPrompt", template)
             
             if not os.path.exists(template_path):
-                return (f"錯誤：找不到模板檔案 {template_path}",)
+                return (f"Error:找不到模板檔案 {template_path}",)
             
             with open(template_path, 'r', encoding='utf-8') as f:
                 template_content = f.read()
             
             # 準備人物特徵描述
             if features == "{EXTRACT_FROM_IMAGE}":
-                features_description = "人物特徵：{EXTRACT_FROM_IMAGE}"
+                features_description = "人物Features:{EXTRACT_FROM_IMAGE}"
             elif features:
-                features_description = f"人物特徵：{features}"
+                features_description = f"人物Features:{features}"
             else:
-                features_description = "人物特徵：根據模特兒名稱自行判斷"
+                features_description = "人物Features:根據模特兒名稱自行判斷"
             
             # 注入參數
             prompt = template_content.format(
@@ -137,22 +137,22 @@ class PhotoMagazinePromptGenerator:
                 features_description=features_description
             )
             
-            print("📝 提示詞生成完成")
-            print(f"   模板：{template}")
-            print(f"   模特兒：{model_name}")
-            print(f"   特徵：{features if features else '自動判定'}")
+            print("📝 prompt生成完成")
+            print(f"   Template:{template}")
+            print(f"   Model:{model_name}")
+            print(f"   Features:{features if features else '自動判定'}")
             if reference_image is not None:
                 print(f"   參考圖片：✅ 已提供（將自動提取特徵）")
-            print(f"   風格：{photo_style}")
-            print(f"   場景：{custom_scene if custom_scene else '自動判定'}")
-            print(f"   頁數：{content_pages}")
+            print(f"   Style:{photo_style}")
+            print(f"   Scene:{custom_scene if custom_scene else '自動判定'}")
+            print(f"   Pages:{content_pages}")
             print("💡 請連接到 LLM 節點")
             
             return (prompt,)
             
         except Exception as e:
             import traceback
-            error_msg = f"錯誤：{str(e)}\n{traceback.format_exc()}"
+            error_msg = f"Error:{str(e)}\n{traceback.format_exc()}"
             print(error_msg)
             return (error_msg,)
 
@@ -162,7 +162,7 @@ class PhotoMagazineParser:
     """
     寫真雜誌解析器 - 極簡版
     輸入：LLM 輸出的 JSON 字串（STRING 接口）
-    輸出：提示詞列表（LIST[STRING]）
+    輸出：prompt列表（LIST[STRING]）
     """
     def __init__(self):
         pass
@@ -182,24 +182,24 @@ class PhotoMagazineParser:
     CATEGORY = "DesignPack"
     
     def parse(self, llm_json_output):
-        """解析 JSON，提取圖片提示詞列表"""
+        """解析 JSON，提取圖片prompt列表"""
         try:
             if not llm_json_output or not llm_json_output.strip():
-                return (["錯誤：JSON 輸入為空"],)
+                return (["Error: JSON input is empty"],)
             
-            print("📝 開始解析 LLM 輸出的 JSON...")
+            print("📝 Starting to parse LLM JSON output...")
             image_prompts = self.extract_prompts(llm_json_output.strip())
-            print(f"✅ 解析完成！提取到 {len(image_prompts)} 個圖片提示詞")
+            print(f"✅ Parsing complete! Extracted {len(image_prompts)} image prompts")
             return (image_prompts,)
             
         except Exception as e:
             import traceback
-            error_msg = f"錯誤：{str(e)}\n{traceback.format_exc()}"
+            error_msg = f"Error:{str(e)}\n{traceback.format_exc()}"
             print(error_msg)
             return ([error_msg],)
     
     def extract_prompts(self, json_text):
-        """從 JSON 文字中提取所有圖片提示詞"""
+        """從 JSON 文字中提取所有圖片prompt"""
         try:
             # 清理 JSON 文字（移除 markdown 代碼塊標記）
             if json_text.startswith("```json"):
@@ -222,42 +222,42 @@ class PhotoMagazineParser:
                     json_str = json_text[start_idx:end_idx]
                     data = json.loads(json_str)
                 else:
-                    return [f"錯誤：無法解析 JSON\n內容：{json_text[:200]}..."]
+                    return [f"Error:無法解析 JSON\n內容：{json_text[:200]}..."]
             
             # 提取所有 image_prompt
             prompts = []
             
-            # 1. 封面提示詞
+            # 1. 封面prompt
             if "cover" in data and isinstance(data["cover"], dict):
                 prompt = data["cover"].get("image_prompt", "")
                 if prompt:
                     prompts.append(str(prompt).strip())
-                    print(f"  ✓ 封面提示詞")
+                    print(f"  ✓ Cover prompt")
             
-            # 2. 內容頁提示詞
+            # 2. 內容pageprompt
             if "pages" in data and isinstance(data["pages"], list):
                 for i, page in enumerate(data["pages"]):
                     if isinstance(page, dict):
                         prompt = page.get("image_prompt", "")
                         if prompt:
                             prompts.append(str(prompt).strip())
-                            print(f"  ✓ 頁面 {i+1} 提示詞")
+                            print(f"  ✓ Page {i+1} prompt")
             
-            # 3. 故事頁提示詞
+            # 3. 故事pageprompt
             if "story_page" in data and isinstance(data["story_page"], dict):
                 prompt = data["story_page"].get("image_prompt", "")
                 if prompt:
                     prompts.append(str(prompt).strip())
-                    print(f"  ✓ 故事頁提示詞")
+                    print(f"  ✓ Story page prompt")
             
             if not prompts:
-                return ["警告：未找到任何 image_prompt"]
+                return ["Warning: No image_prompt found"]
             
             return prompts
                     
         except Exception as e:
             import traceback
-            return [f"解析錯誤：{str(e)}\n{traceback.format_exc()}"]
+            return [f"Parse error:{str(e)}\n{traceback.format_exc()}"]
 
     
     def clean_markdown_content(self, data):
@@ -300,7 +300,7 @@ class PhotoMagazineParser:
         return clean_recursive(data)
 
     def parse_response_and_generate_prompts(self, response_text):
-        """解析回應並生成圖片提示詞"""
+        """解析回應並生成圖片prompt"""
         try:
             # 解析回應並提取JSON
             if response_text.startswith("```json"):
@@ -321,12 +321,12 @@ class PhotoMagazineParser:
                     json_str = response_text[start_idx:end_idx]
                     magazine_data = json.loads(json_str)
                 else:
-                    return ([f"錯誤：無法解析為JSON\n回應內容：{response_text[:500]}..."], "")
+                    return ([f"Error:無法解析為JSON\n回應內容：{response_text[:500]}..."], "")
             
             # 清理markdown標記
             magazine_data = self.clean_markdown_content(magazine_data)
             
-            # 提取圖片提示詞列表 - 從完整JSON中獲取所有prompts
+            # 提取圖片prompt列表 - 從完整JSON中獲取所有prompts
             image_prompts = []
             
             def extract_prompt(data, key="image_prompt", fallback="portrait photography, professional model"):
@@ -354,19 +354,19 @@ class PhotoMagazineParser:
                 image_prompts.append(cover_prompt)
                 print(f"  封面 prompt: {cover_prompt[:50]}...")
             
-            # 2. 從 pages 中提取每頁的 image_prompt
+            # 2. 從 pages 中提取每page的 image_prompt
             pages = magazine_data.get("pages", [])
             for i, page in enumerate(pages):
                 page_prompt = extract_prompt(page)
                 image_prompts.append(page_prompt)
-                print(f"  頁面 {i+1} prompt: {page_prompt[:50]}...")
+                print(f"  page面 {i+1} prompt: {page_prompt[:50]}...")
             
-            # 3. 故事頁 image_prompt
+            # 3. 故事page image_prompt
             story_data = magazine_data.get("story_page", {})
             if story_data:
                 story_prompt = extract_prompt(story_data)
                 image_prompts.append(story_prompt)
-                print(f"  故事頁 prompt: {story_prompt[:50]}...")
+                print(f"  故事page prompt: {story_prompt[:50]}...")
             
             # 返回完整的 JSON 字串
             json_string = json.dumps(magazine_data, ensure_ascii=False, indent=2)
@@ -374,7 +374,7 @@ class PhotoMagazineParser:
             return (image_prompts, json_string)
                     
         except Exception as e:
-            return ([f"錯誤：{str(e)}"], "")
+            return ([f"Error:{str(e)}"], "")
 
 
 class PhotoMagazineMaker:
@@ -396,7 +396,7 @@ class PhotoMagazineMaker:
                 "compress_pdf": ("BOOLEAN", {"default": False}),
                 "disable_cover_layout": ("BOOLEAN", {
                     "default": False,
-                    "tooltip": "關閉封面排版，使用第一張圖片作為滿版封面（不含文字）"
+                    "tooltip": "關閉封面排版，使用Page一images作為滿版封面（不含文字）"
                 }),
                 "output_path": ("STRING", {"default": "./ComfyUI/output/MyPDF/photo_magazine.pdf"}),
             }
@@ -462,7 +462,7 @@ class PhotoMagazineMaker:
             
         except Exception as e:
             # 備用方案：建立空白圖片
-            print(f"圖片轉換錯誤: {e}")
+            print(f"Image conversion error: {e}")
             return Image.new('RGB', (800, 600), color='white')
     
     def resize_image_to_fit(self, pil_image, max_width_mm, max_height_mm, dpi=300):
@@ -509,7 +509,7 @@ class PhotoMagazineMaker:
         if preferred_index is not None and preferred_index < len(all_images) and preferred_index not in used_indices:
             return all_images[preferred_index]
         
-        # 否則找第一張未使用的圖片
+        # 否則找Page一張未使用的圖片
         for i, img in enumerate(all_images):
             if i not in used_indices:
                 return img
@@ -550,7 +550,7 @@ class PhotoMagazineMaker:
             return cropped_image
             
         except Exception as e:
-            print(f"滿版圖片創建錯誤: {e}")
+            print(f"Full bleed image creation error: {e}")
             return pil_image
     
     def wrap_text(self, text, max_width_mm, font_name, font_size, canvas_obj):
@@ -609,13 +609,13 @@ class PhotoMagazineMaker:
     
     def allocate_images_smartly(self, images, num_content_pages):
         """
-        智能分配圖片到各個頁面
+        智能分配圖片到各pages
         返回一個字典，包含各部分應使用的圖片索引
         """
         total_images = len(images)
         
         # 計算所需圖片數量
-        # 封面: 1, 內容頁: num_content_pages, 故事頁: 1, 尾頁: 至少1張（最多4張用於拼貼）
+        # 封面: 1, 內容page: num_content_pages, 故事page: 1, 尾page: 至少1張（最多4張用於拼貼）
         min_needed = 1 + num_content_pages + 1 + 1  # 最少需求
         
         allocation = {
@@ -636,7 +636,7 @@ class PhotoMagazineMaker:
             allocation["cover"] = idx
             idx += 1
         
-        # 2. 內容頁
+        # 2. 內容page
         for i in range(num_content_pages):
             if idx < total_images:
                 allocation["pages"].append(idx)
@@ -645,15 +645,15 @@ class PhotoMagazineMaker:
                 # 圖片不足，重複使用
                 allocation["pages"].append(i % total_images)
         
-        # 3. 故事頁
+        # 3. 故事page
         if idx < total_images:
             allocation["story"] = idx
             idx += 1
         else:
-            # 重複使用第一張
+            # 重複使用Page一張
             allocation["story"] = 0
         
-        # 4. 尾頁（收集剩餘圖片，最多4張用於四分割）
+        # 4. 尾page（收集剩餘圖片，最多4張用於四分割）
         remaining_images = total_images - idx
         if remaining_images > 0:
             # 使用剩餘的圖片
@@ -661,9 +661,9 @@ class PhotoMagazineMaker:
                 allocation["footer"].append(idx + i)
         else:
             # 沒有剩餘圖片，使用前面的圖片
-            # 優先使用內容頁的圖片作為尾頁拼貼
+            # 優先使用內容page的圖片as back cover拼貼
             if len(allocation["pages"]) >= 4:
-                # 如果有足夠的內容頁圖片，取最後4張
+                # 如果有足夠的內容page圖片，取最後4張
                 allocation["footer"] = allocation["pages"][-4:]
             elif len(allocation["pages"]) > 0:
                 # 圖片不足4張，重複使用
@@ -681,7 +681,7 @@ class PhotoMagazineMaker:
             cover_info = magazine_data.get("cover", {})
             # 確保 cover_info 是字典類型
             if not isinstance(cover_info, dict):
-                print(f"警告：cover_info 不是字典類型（類型: {type(cover_info)}），使用預設值")
+                print(f"警告：cover_info 不是字典類型（類型: {type(cover_info)}), using default values")
                 cover_info = {}
             print(f"封面數據: {cover_info}")
             
@@ -690,7 +690,7 @@ class PhotoMagazineMaker:
             print(f"封面是否有有效內容: {has_content}")
             
             if not has_content and cover_image:
-                # 純圖片封面：滿版顯示第一張圖片，不添加任何文字
+                # 純圖片封面：滿版顯示Page一images，不添加任何文字
                 print("使用純圖片封面模式")
                 full_bleed = self.create_full_bleed_image(cover_image)
                 import time
@@ -940,7 +940,7 @@ class PhotoMagazineMaker:
                     line_height = adaptive_font_size + 2
                     
                     for line in lines[:min(12, len(lines))]:  # 最多12行，適應性顯示
-                        if line.strip() and y_pos > 10*mm:  # 確保不超出頁面
+                        if line.strip() and y_pos > 10*mm:  # 確保不超出page面
                             line_width = stringWidth(line, font_name, adaptive_font_size)
                             canvas_obj.drawString(text_center_x*mm - line_width/2, y_pos, line)
                         y_pos -= line_height
@@ -1044,7 +1044,7 @@ class PhotoMagazineMaker:
             # 短文字：保持120mm
             max_line_width = 120*mm
         
-        # 確保不超過頁面寬度（留出邊距）
+        # 確保不超過page面寬度（留出邊距）
         page_max_width = 180*mm  # A4寬度210mm - 左右各15mm邊距
         max_line_width = min(max_line_width, page_max_width)
         
@@ -1066,7 +1066,7 @@ class PhotoMagazineMaker:
         content_width = max(theme_width, desc_max_width, min_box_width - padding * 2)
         box_width = content_width + padding * 2
         
-        # 確保文字框不超過頁面寬度
+        # 確保文字框不超過page面寬度
         if box_width > page_max_width:
             box_width = page_max_width
             # 重新計算內容寬度和換行
@@ -1086,9 +1086,9 @@ class PhotoMagazineMaker:
         return box_width, box_height, desc_lines
     
     def draw_content_page(self, canvas_obj, page_data, page_image, template_config, font_name, layout, compress_enabled=False):
-        """繪製內頁（滿版圖片 + 統一的文字框）"""
+        """繪製內page（滿版圖片 + 統一的文字框）"""
         try:
-            print(f"繪製內頁，數據: {page_data}")
+            print(f"繪製內page，數據: {page_data}")
             
             if page_image:
                 print("開始繪製滿版圖片")
@@ -1112,17 +1112,17 @@ class PhotoMagazineMaker:
                     pass
             else:
                 # 沒有圖片時應該不會發生，因為已經有備用圖片邏輯
-                print("警告：內容頁備用圖片邏輯失效，使用純色背景")
+                print("警告：內容page備用圖片邏輯失效，使用純色背景")
                 canvas_obj.setFillColor(HexColor(template_config["background"]))
                 canvas_obj.rect(0, 0, 210*mm, 297*mm, fill=1, stroke=0)
             
-            # 獲取頁面文字內容
+            # 獲取page面文字內容
             theme = page_data.get("theme", "").strip() if page_data.get("theme") else ""
             description = page_data.get("description", "").strip() if page_data.get("description") else ""
             
             # 統一的文字框處理（所有版型都相同）
             if theme or description:
-                print(f"添加頁面文字 - 主題: {theme}, 描述: {description[:20]}...")
+                print(f"添加page面文字 - 主題: {theme}, 描述: {description[:20]}...")
                 
                 # 計算文字框尺寸
                 box_width, box_height, desc_lines = self.calculate_text_box_dimensions(
@@ -1137,10 +1137,10 @@ class PhotoMagazineMaker:
                 box_x = 210*mm - box_width - margin_right
                 box_y = margin_bottom
                 
-                # 確保文字框不超出頁面邊界
+                # 確保文字框不超出page面邊界
                 if box_x < 5*mm:
                     box_x = 5*mm
-                    box_width = 210*mm - 10*mm  # 調整寬度適應頁面
+                    box_width = 210*mm - 10*mm  # 調整寬度適應page面
                 
                 if box_y + box_height > 297*mm - 5*mm:
                     box_y = 297*mm - box_height - 5*mm
@@ -1177,19 +1177,19 @@ class PhotoMagazineMaker:
                 print(f"文字框繪製完成 - 位置: ({box_x/mm:.1f}, {box_y/mm:.1f}), 尺寸: ({box_width/mm:.1f} x {box_height/mm:.1f})")
             
         except Exception as e:
-            print(f"內頁繪製錯誤: {e}")
+            print(f"內page繪製錯誤: {e}")
             import traceback
             print(f"錯誤詳情: {traceback.format_exc()}")
     
     def draw_story_page(self, canvas_obj, story_data, story_image, template_config, font_name, layout, compress_enabled=False):
-        """繪製故事頁"""
+        """繪製故事page"""
         try:
-            print(f"繪製故事頁，數據: {story_data}")
+            print(f"繪製故事page，數據: {story_data}")
             print(f"story_data 類型: {type(story_data)}")
             
             # 確保 story_data 是字典類型
             if not isinstance(story_data, dict):
-                print(f"警告：story_data 不是字典類型（類型: {type(story_data)}），使用預設值")
+                print(f"警告：story_data 不是字典類型（類型: {type(story_data)}), using default values")
                 story_data = {"title": "小故事", "content": ""}
             
             title = story_data.get("title", "").strip() if story_data.get("title") else ""
@@ -1199,8 +1199,8 @@ class PhotoMagazineMaker:
             print(f"故事標題: {title}, 內容長度: {len(content)}")
             
             if layout == "版型A-經典排版":
-                # 版型A故事頁：與封面完全相同的設計
-                print(f"版型A故事頁，圖片存在: {story_image is not None}")
+                # 版型A故事page：與封面完全相同的設計
+                print(f"版型A故事page，圖片存在: {story_image is not None}")
                 
                 if story_image:
                     print(f"處理故事圖片，尺寸: {story_image.size}")
@@ -1213,7 +1213,7 @@ class PhotoMagazineMaker:
                         
                         # 滿版圖片（上方）
                         canvas_obj.drawImage(temp_path, 0, 97*mm, width=210*mm, height=200*mm)
-                        print("版型A故事頁圖片繪製完成")
+                        print("版型A故事page圖片繪製完成")
                         
                         try:
                             os.remove(temp_path)
@@ -1225,7 +1225,7 @@ class PhotoMagazineMaker:
                         canvas_obj.setFillColor(HexColor(template_config["secondary"]))
                         canvas_obj.rect(0, 97*mm, 210*mm, 200*mm, fill=1, stroke=0)
                 else:
-                    print("版型A故事頁：沒有圖片，使用純色背景")
+                    print("版型A故事page：沒有圖片，使用純色背景")
                     # 沒有圖片時的上方背景
                     canvas_obj.setFillColor(HexColor(template_config["secondary"]))
                     canvas_obj.rect(0, 97*mm, 210*mm, 200*mm, fill=1, stroke=0)
@@ -1356,8 +1356,8 @@ class PhotoMagazineMaker:
                     
                     box_height = max(text_area_height, min_height)
                     
-                    # 確保不超過頁面可用高度
-                    max_allowed_height = 290*mm - 10*mm  # 頁面高度297mm - 上下邊距
+                    # 確保不超過page面可用高度
+                    max_allowed_height = 290*mm - 10*mm  # page面高度297mm - 上下邊距
                     if box_height > max_allowed_height:
                         box_height = max_allowed_height
                     
@@ -1368,7 +1368,7 @@ class PhotoMagazineMaker:
                     box_x = 210*mm - box_width - 5*mm
                     box_y = 5*mm
                     
-                    # 確保文字框不會超出頁面頂部
+                    # 確保文字框不會超出page面頂部
                     if box_y + box_height > 297*mm - 5*mm:
                         box_y = 297*mm - box_height - 5*mm
                     
@@ -1419,11 +1419,11 @@ class PhotoMagazineMaker:
                             displayed_lines += 1
                         y_position -= line_height
                     
-                    print(f"版型B顯示了 {displayed_lines}/{len(content_lines)} 行文字，字體大小: {adaptive_font_size}, 行高: {line_height}, 框高: {box_height}")
+                    print(f"Layout B displayed {displayed_lines}/{len(content_lines)} lines of text, font size: {adaptive_font_size}, line height: {line_height}, box height: {box_height}")
             
             elif layout == "版型C-簡約現代":
-                # 版型C故事頁：與封面相同的設計（左圖右文）但適應性布局
-                print(f"版型C故事頁，圖片存在: {story_image is not None}")
+                # 版型C故事page：與封面相同的設計（左圖右文）但適應性布局
+                print(f"版型C故事page，圖片存在: {story_image is not None}")
                 
                 # 根據文字內容計算適當的版面寬度
                 all_text_content = ""
@@ -1472,7 +1472,7 @@ class PhotoMagazineMaker:
                     resized_image.save(temp_path, "JPEG", quality=95)
                     
                     canvas_obj.drawImage(temp_path, 0, 0, width=image_area_width*mm, height=297*mm)
-                    print("版型C故事頁圖片繪製完成")
+                    print("版型C故事page圖片繪製完成")
                     
                     try:
                         os.remove(temp_path)
@@ -1519,12 +1519,12 @@ class PhotoMagazineMaker:
                 print(f"版型C故事內容已繪製，標題: {title}")
             
         except Exception as e:
-            print(f"故事頁繪製錯誤: {e}")
+            print(f"故事page繪製錯誤: {e}")
     
     def draw_back_cover(self, canvas_obj, back_data, footer_images, template_config, font_name, layout, compress_enabled=False):
-        """繪製結尾頁精選回顧"""
+        """繪製結尾page精選回顧"""
         try:
-            print(f"繪製結尾頁，數據: {back_data}")
+            print(f"繪製結尾page，數據: {back_data}")
             print(f"back_data 類型: {type(back_data)}")
             
             # 確保 back_data 是字典類型
@@ -1536,12 +1536,12 @@ class PhotoMagazineMaker:
             if not title:
                 title = "精選回顧"  # 預設標題
             description = back_data.get("description", "").strip() if back_data.get("description") else ""
-            print(f"結尾頁標題: {title}, 描述: {description}")
+            print(f"結尾page標題: {title}, 描述: {description}")
             print(f"可用圖片數量: {len(footer_images)}")
             
             if layout == "版型A-經典排版" or layout == "版型B-藝術拼貼":
                 # 版型A和B：使用可用圖片創建拼貼效果（統一格式）
-                if footer_images and len(footer_images) >= 1:  # 只要有至少一張圖片就創建拼貼
+                if footer_images and len(footer_images) >= 1:  # 只要有至少一images就創建拼貼
                     # 創建2x2拼接的滿版底圖
                     canvas_width = 210*mm  # A4寬度
                     canvas_height = 297*mm  # A4高度
@@ -1626,9 +1626,9 @@ class PhotoMagazineMaker:
             
             elif layout == "版型C-簡約現代":
                 # 版型C：一張底圖 + 無背景框文字
-                print(f"版型C尾頁，圖片數量: {len(footer_images) if footer_images else 0}")
+                print(f"版型C尾page，圖片數量: {len(footer_images) if footer_images else 0}")
                 if footer_images and len(footer_images) >= 1:
-                    # 使用第一張圖片作為滿版底圖
+                    # 使用Page一images作為滿版底圖
                     first_image = footer_images[0]
                     full_bleed = self.create_full_bleed_image(first_image)
                     import time
@@ -1636,14 +1636,14 @@ class PhotoMagazineMaker:
                     full_bleed.save(temp_path, "JPEG", quality=95)
                     
                     canvas_obj.drawImage(temp_path, 0, 0, width=210*mm, height=297*mm)
-                    print("版型C尾頁底圖已繪製")
+                    print("版型C尾page底圖已繪製")
                     
                     try:
                         os.remove(temp_path)
                     except:
                         pass
                 else:
-                    print("版型C尾頁：沒有圖片，使用純色背景")
+                    print("版型C尾page：沒有圖片，使用純色背景")
                     # 沒有圖片時的純色背景
                     canvas_obj.setFillColor(HexColor(template_config["accent"]))
                     canvas_obj.rect(0, 0, 210*mm, 297*mm, fill=1, stroke=0)
@@ -1677,7 +1677,7 @@ class PhotoMagazineMaker:
                         y_position -= line_height
             
         except Exception as e:
-            print(f"頁尾繪製錯誤: {e}")
+            print(f"page尾繪製錯誤: {e}")
     
     def crop_image_for_layout(self, image, aspect_ratio, crop_position="center"):
         """裁切圖片為指定比例"""
@@ -1716,9 +1716,9 @@ class PhotoMagazineMaker:
         return 60 if compress_enabled else 95
     
     def allocate_images_smartly(self, pil_images, content_pages_count):
-        """智能分配圖片到各個頁面"""
+        """智能分配圖片到各pages"""
         total_images = len(pil_images)
-        total_pages_needed = 1 + content_pages_count + 1 + 1  # 封面 + 內頁 + 故事頁 + 尾頁
+        total_pages_needed = 1 + content_pages_count + 1 + 1  # 封面 + 內page + 故事page + 尾page
         
         allocation = {
             "cover": None,
@@ -1740,31 +1740,31 @@ class PhotoMagazineMaker:
             allocation["footer"] = list(range(remaining_start, min(remaining_start + 5, total_images)))
             
         elif total_images >= content_pages_count + 1:
-            # 圖片稍少：優先內容頁，盡量避免重複
+            # 圖片稍少：優先內容page，盡量避免重複
             allocation["cover"] = 0
             allocation["pages"] = list(range(1, min(content_pages_count + 1, total_images)))
-            # 故事頁使用下一張可用圖片，如果沒有則使用最後一張
+            # 故事page使用下一張可用圖片，如果沒有則使用最後一張
             if content_pages_count + 1 < total_images:
                 allocation["story"] = content_pages_count + 1
             else:
-                allocation["story"] = total_images - 1  # 使用最後一張圖片
+                allocation["story"] = total_images - 1  # 使用最後一images
             # 使用所有可用圖片作為footer
             allocation["footer"] = list(range(min(5, total_images)))
             
         else:
-            # 圖片很少：大量重複使用，但避免故事頁使用封面圖片
+            # 圖片很少：大量重複使用，但避免故事page使用封面圖片
             allocation["cover"] = 0
-            # 循環使用圖片填滿內容頁
+            # 循環Using image填滿內容page
             allocation["pages"] = [i % total_images for i in range(content_pages_count)]
-            # 故事頁優先使用最後一張圖片，如果只有一張圖則使用同一張
+            # 故事page優先使用最後一images，如果只有一張圖則使用同一張
             if total_images > 1:
-                allocation["story"] = total_images - 1  # 使用最後一張圖片
+                allocation["story"] = total_images - 1  # 使用最後一images
             else:
-                allocation["story"] = 0  # 只有一張圖片時無選擇
+                allocation["story"] = 0  # 只有一images時無選擇
             # footer使用所有圖片
             allocation["footer"] = list(range(total_images))
         
-        print(f"圖片分配結果: 封面={allocation['cover']}, 內頁={allocation['pages']}, 故事頁={allocation['story']}, 尾頁={allocation['footer']}")
+        print(f"Image allocation result: cover={allocation['cover']}, pages={allocation['pages']}, story={allocation['story']}, footer={allocation['footer']}")
         return allocation
 
     def make_photo_magazine(self, images, json_data, template, layout, font, compress_pdf, disable_cover_layout, output_path):
@@ -1793,11 +1793,11 @@ class PhotoMagazineMaker:
             try:
                 magazine_data = json.loads(json_string)
             except json.JSONDecodeError as e:
-                return (f"JSON 解析錯誤: {str(e)}，接收到的數據: {str(json_string)[:200]}",)
+                return (f"JSON parse error: {str(e)}, received data: {str(json_string)[:200]}",)
             
             # 驗證JSON結構
             if not isinstance(magazine_data, dict):
-                return (f"JSON格式錯誤：期望字典格式，收到 {type(magazine_data).__name__}",)
+                return (f"JSON format error: expected dict, received {type(magazine_data).__name__}",)
             
             # 檢查必要的數據結構
             required_keys = ["magazine_info", "cover", "pages", "story_page", "back_cover"]
@@ -1808,21 +1808,21 @@ class PhotoMagazineMaker:
             # 檢查pages是否為列表且不為空
             pages = magazine_data.get("pages", [])
             if not isinstance(pages, list):
-                return (f"JSON格式錯誤：pages必須是列表格式，收到 {type(pages).__name__}",)
+                return (f"JSON format error: pages must be list, received {type(pages).__name__}",)
             
             if len(pages) == 0:
-                return ("JSON數據錯誤：pages列表為空，無法生成雜誌",)
+                return ("JSON data error: pages list is empty, cannot generate magazine",)
             
-            print(f"成功解析JSON，包含 {len(pages)} 個頁面")
+            print(f"Successfully parsed JSON, contains {len(pages)} pages")
             
             template_config = self.template_configs.get(template_name, self.template_configs["清新自然"])
             
             # 註冊字體
             font_name = self.register_font(font_name_input)
             
-            # 轉換圖片
+            # Converting image
             pil_images = []
-            print(f"開始轉換圖片，圖片類型: {type(images)}")
+            print(f"Starting image conversion, image type: {type(images)}")
             
             if isinstance(images, list):
                 # 處理圖片列表
@@ -1830,22 +1830,22 @@ class PhotoMagazineMaker:
                     if isinstance(img, torch.Tensor):
                         pil_img = self.tensor_to_pil(img)
                         pil_images.append(pil_img)
-                        print(f"轉換圖片 {i}: {pil_img.size}")
+                        print(f"Converting image {i}: {pil_img.size}")
             elif isinstance(images, torch.Tensor):
                 if len(images.shape) == 4:  # 批次圖片
                     for i in range(images.shape[0]):
                         pil_img = self.tensor_to_pil(images[i])
                         pil_images.append(pil_img)
-                        print(f"轉換批次圖片 {i}: {pil_img.size}")
+                        print(f"Converting batch image {i}: {pil_img.size}")
                 else:
                     pil_img = self.tensor_to_pil(images)
                     pil_images.append(pil_img)
-                    print(f"轉換單張圖片: {pil_img.size}")
+                    print(f"Converting single image: {pil_img.size}")
             
             if len(pil_images) == 0:
-                return ("錯誤：沒有有效的圖片可以處理",)
+                return ("Error: No valid images to process",)
             
-            print(f"成功轉換 {len(pil_images)} 張圖片")
+            print(f"Successfully converted {len(pil_images)} images")
             
             # 確保輸出目錄存在
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
@@ -1853,14 +1853,14 @@ class PhotoMagazineMaker:
             # 創建PDF
             c = canvas.Canvas(output_file, pagesize=A4)
             
-            # 動態計算所需頁面數
+            # 動態計算所需page面數
             pages = magazine_data.get("pages", [])
-            total_pages_needed = 1 + len(pages) + 1 + 1  # 封面 + 內頁 + 故事頁 + 尾頁
-            print(f"總共需要 {total_pages_needed} 個頁面，可用圖片 {len(pil_images)} 張")
+            total_pages_needed = 1 + len(pages) + 1 + 1  # 封面 + 內page + 故事page + 尾page
+            print(f"Total required {total_pages_needed} pages, available images {len(pil_images)} 張")
             
             # 智能圖片分配策略
             image_allocation = self.allocate_images_smartly(pil_images, len(pages))
-            print(f"圖片分配策略: {image_allocation}")
+            print(f"Image allocation strategy: {image_allocation}")
             
             # 計算圖片分配
             image_index = 0
@@ -1870,23 +1870,23 @@ class PhotoMagazineMaker:
             cover_image = None
             if image_allocation["cover"] is not None:
                 cover_image = pil_images[image_allocation["cover"]]
-                print(f"使用圖片 {image_allocation['cover']} 作為封面")
+                print(f"Using image {image_allocation['cover']} as cover")
             else:
-                print("警告：沒有圖片可用作封面")
+                print("Warning: No image available for cover")
             
             cover_data = magazine_data.get("cover", {})
             # 確保 cover_data 是字典類型
             if not isinstance(cover_data, dict):
-                print(f"警告：JSON中的cover不是字典格式（類型: {type(cover_data)}），使用預設值")
+                print(f"Warning: cover in JSON is not dict format (type: {type(cover_data)}), using default values")
                 cover_data = {"title": "寫真集", "subtitle": "", "description": ""}
             elif not cover_data:
-                print("警告：JSON中缺少cover數據，使用預設值")
+                print("Warning: Missing cover data in JSON, using default values")
                 cover_data = {"title": "寫真集", "subtitle": "", "description": ""}
             
             # 檢查是否關閉封面排版
             if disable_cover:
-                # 關閉封面排版：使用第一張圖片作為滿版封面（不含文字）
-                print("✓ 關閉封面排版，使用第一張圖片作為滿版封面")
+                # 關閉封面排版：使用Page一images作為滿版封面（不含文字）
+                print("✓ Cover layout disabled, using first image as full bleed cover")
                 if cover_image:
                     # 創建滿版圖片
                     full_bleed = self.create_full_bleed_image(cover_image, 210*mm, 297*mm)
@@ -1903,77 +1903,77 @@ class PhotoMagazineMaker:
                 self.draw_cover_page(c, magazine_data, cover_image, template_config, font_name, layout_name, compress_enabled)
             
             c.showPage()
-            print("封面繪製完成")
+            print("Cover page complete")
             
-            # 內頁 - 使用智能分配
-            print(f"JSON中有 {len(pages)} 個頁面數據，準備繪製所有內頁")
+            # 內page - 使用智能分配
+            print(f"JSON contains {len(pages)} page data, preparing to draw all content pages")
             
             for i, page_data in enumerate(pages):
                 # 使用智能分配的圖片索引
                 if i < len(image_allocation["pages"]):
                     page_img_idx = image_allocation["pages"][i]
                     page_image = pil_images[page_img_idx]
-                    print(f"使用圖片 {page_img_idx} 作為第 {i+1} 頁")
+                    print(f"Using image {page_img_idx} as page {i+1} page")
                 else:
-                    # 如果分配策略沒有足夠的圖片，使用第一張圖片
+                    # 如果分配策略沒有足夠的圖片，使用Page一images
                     page_image = pil_images[0] if len(pil_images) > 0 else None
-                    print(f"第 {i+1} 頁使用備用圖片 0")
+                    print(f"Page {i+1} using fallback image 0")
                 
-                # 驗證頁面數據
+                # 驗證page面數據
                 if not isinstance(page_data, dict):
-                    print(f"警告：第 {i+1} 頁數據格式錯誤，跳過")
+                    print(f"Warning: Page {i+1} data format error, skipping")
                     continue
                 
                 self.draw_content_page(c, page_data, page_image, template_config, font_name, layout_name, compress_enabled)
                 c.showPage()
-                print(f"第 {i+1} 頁繪製完成")
+                print(f"Page {i+1} page complete")
             
-            # 故事頁 - 使用智能分配
+            # 故事page - 使用智能分配
             story_data = magazine_data.get("story_page", {})
             # 確保 story_data 是字典類型
             if not isinstance(story_data, dict):
-                print(f"警告：JSON中的story_page不是字典格式（類型: {type(story_data)}），使用預設值")
+                print(f"Warning: story_page in JSON is not dict format (type: {type(story_data)}), using default values")
                 story_data = {"title": "小故事", "content": ""}
             elif not story_data:
-                print("警告：JSON中缺少story_page數據，使用預設值")
+                print("Warning: Missing story_page data in JSON, using default values")
                 story_data = {"title": "小故事", "content": ""}
             
             story_image = None
             if image_allocation["story"] is not None:
                 story_image = pil_images[image_allocation["story"]]
-                print(f"使用圖片 {image_allocation['story']} 作為故事頁")
+                print(f"Using image {image_allocation['story']} as story page")
             else:
-                print("警告：故事頁沒有對應圖片")
+                print("警告：故事page沒有對應圖片")
             
             self.draw_story_page(c, story_data, story_image, template_config, font_name, layout_name, compress_enabled)
             c.showPage()
-            print("故事頁繪製完成")
+            print("Story page complete")
             
-            # 頁尾圖片準備 - 使用智能分配
+            # page尾圖片準備 - 使用智能分配
             footer_images = []
-            print(f"準備{layout_name}的頁尾圖片")
+            print(f"準備{layout_name}的page尾圖片")
             
             for idx in image_allocation["footer"]:
                 if idx < len(pil_images):
                     footer_images.append(pil_images[idx])
-                    print(f"使用圖片 {idx} 作為頁尾圖片")
+                    print(f"Using image {idx} 作為page尾圖片")
             
-            print(f"頁尾圖片準備完成，共 {len(footer_images)} 張")
+            print(f"page尾圖片準備完成，共 {len(footer_images)} 張")
             
-            # 尾頁（所有版型都需要尾頁）
+            # 尾page（所有版型都需要尾page）
             back_data = magazine_data.get("back_cover", {})
             # 確保 back_data 是字典類型
             if not isinstance(back_data, dict):
-                print(f"警告：JSON中的back_cover不是字典格式（類型: {type(back_data)}），使用預設值")
+                print(f"警告：JSON中的back_cover不是字典格式（類型: {type(back_data)}), using default values")
                 back_data = {"title": "精選回顧", "description": ""}
             elif not back_data:
                 print("警告：JSON中缺少back_cover數據，使用預設值")
                 back_data = {"title": "精選回顧", "description": ""}
             
-            print(f"準備繪製{layout_name}尾頁")
+            print(f"準備繪製{layout_name}尾page")
             self.draw_back_cover(c, back_data, footer_images, template_config, font_name, layout_name, compress_enabled)
             c.showPage()
-            print("尾頁繪製完成")
+            print("Back cover complete")
             
             # 儲存PDF
             c.save()
@@ -1983,7 +1983,7 @@ class PhotoMagazineMaker:
             return (f"寫真雜誌生成成功！已儲存至：{output_file}",)
             
         except Exception as e:
-            return (f"生成寫真雜誌時發生錯誤：{str(e)}",)
+            return (f"Error generating photo magazine:{str(e)}",)
 
 
 # 節點註冊
@@ -1994,7 +1994,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "PhotoMagazinePromptGenerator": "📝 寫真雜誌提示詞注入器",
-    "PhotoMagazineParser": "🔍 JSON → 提示詞列表",
+    "PhotoMagazinePromptGenerator": "📝 寫真雜誌prompt注入器",
+    "PhotoMagazineParser": "🔍 JSON → prompt列表",
     "PhotoMagazineMaker": "📄 寫真雜誌製作器"
 }

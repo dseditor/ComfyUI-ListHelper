@@ -309,6 +309,9 @@
       },
       "1": {
         "name": "使用的种子"
+      },
+      "2": {
+        "name": "提示词列表"
       }
     }
   },
@@ -359,6 +362,9 @@
   "OpenAIHelper": {
     "display_name": "OpenAI 辅助工具",
     "inputs": {
+      "config_template": {
+        "name": "配置模板"
+      },
       "endpoint": {
         "name": "端点"
       },
@@ -402,6 +408,9 @@
       },
       "1": {
         "name": "模型名称列表"
+      },
+      "2": {
+        "name": "提示词列表"
       }
     }
   },
@@ -581,6 +590,9 @@
       },
       "compress_pdf": {
         "name": "压缩 PDF"
+      },
+      "disable_cover_layout": {
+        "name": "关闭封面排版"
       },
       "output_path": {
         "name": "输出路径"
