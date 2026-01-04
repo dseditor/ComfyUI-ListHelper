@@ -394,11 +394,15 @@ class PhotoMagazineMaker:
                 "layout": (["版型A-經典排版", "版型B-藝術拼貼", "版型C-簡約現代"], {"default": "版型A-經典排版"}),
                 "font": (font_files, {"default": font_files[0] if font_files else "default"}),
                 "compress_pdf": ("BOOLEAN", {"default": False}),
-                "output_path": ("STRING", {"default": "./output/photo_magazine.pdf"}),
+                "disable_cover_layout": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "關閉封面排版，使用第一張圖片作為滿版封面（不含文字）"
+                }),
+                "output_path": ("STRING", {"default": "./ComfyUI/output/MyPDF/photo_magazine.pdf"}),
             }
         }
     
-    INPUT_IS_LIST = (True, False, False, False, False, False, False)  # 只有images是列表
+    INPUT_IS_LIST = (True, False, False, False, False, False, False, False)  # 只有images是列表
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("result",)
     FUNCTION = "make_photo_magazine"
@@ -1393,9 +1397,10 @@ class PhotoMagazineMaker:
                     padding_bottom = 10*mm  # 底部邊距（增加以確保不溢出）
                     available_text_height = box_height - title_area_height - padding_bottom
                     
-                    # 計算最大可顯示行數（更保守的計算）
+                    # 計算最大可顯示行數（直接使用計算值）
                     max_lines = int(available_text_height / line_height)
-                    max_lines = max(min(max_lines, len(content_lines)), 1)  # 至少1行，最多實際行數
+                    if max_lines < 1:
+                        max_lines = 1  # 至少顯示1行
                     
                     # 起始Y位置
                     start_y = box_y + box_height - title_area_height
@@ -1762,7 +1767,7 @@ class PhotoMagazineMaker:
         print(f"圖片分配結果: 封面={allocation['cover']}, 內頁={allocation['pages']}, 故事頁={allocation['story']}, 尾頁={allocation['footer']}")
         return allocation
 
-    def make_photo_magazine(self, images, json_data, template, layout, font, compress_pdf, output_path):
+    def make_photo_magazine(self, images, json_data, template, layout, font, compress_pdf, disable_cover_layout, output_path):
         """製作寫真雜誌"""
         try:
             # 根據ComfyUI規範，當INPUT_IS_LIST=True時，所有參數都是列表
@@ -1772,7 +1777,8 @@ class PhotoMagazineMaker:
             layout_name = layout[0] if isinstance(layout, list) and layout else "版型A-經典排版"
             font_name_input = font[0] if isinstance(font, list) and font else "default"
             compress_enabled = compress_pdf[0] if isinstance(compress_pdf, list) and compress_pdf else False
-            base_output = output_path[0] if isinstance(output_path, list) and output_path else "./output/photo_magazine.pdf"
+            disable_cover = disable_cover_layout[0] if isinstance(disable_cover_layout, list) and disable_cover_layout else False
+            base_output = output_path[0] if isinstance(output_path, list) and output_path else "./ComfyUI/output/MyPDF/photo_magazine.pdf"
             
             # 為檔案名添加時間戳記，防止覆蓋
             import os.path
@@ -1877,7 +1883,22 @@ class PhotoMagazineMaker:
                 print("警告：JSON中缺少cover數據，使用預設值")
                 cover_data = {"title": "寫真集", "subtitle": "", "description": ""}
             
-            self.draw_cover_page(c, magazine_data, cover_image, template_config, font_name, layout_name, compress_enabled)
+            # 檢查是否關閉封面排版
+            if disable_cover:
+                # 關閉封面排版：使用第一張圖片作為滿版封面（不含文字）
+                print("✓ 關閉封面排版，使用第一張圖片作為滿版封面")
+                if cover_image:
+                    # 創建滿版圖片
+                    full_bleed = self.create_full_bleed_image(cover_image, 210*mm, 297*mm)
+                    c.drawImage(full_bleed, 0, 0, width=210*mm, height=297*mm, preserveAspectRatio=False)
+                else:
+                    # 沒有圖片時使用純色背景
+                    c.setFillColor(HexColor(template_config["primary"]))
+                    c.rect(0, 0, 210*mm, 297*mm, fill=1, stroke=0)
+            else:
+                # 正常封面排版
+                self.draw_cover_page(c, magazine_data, cover_image, template_config, font_name, layout_name, compress_enabled)
+            
             c.showPage()
             print("封面繪製完成")
             
