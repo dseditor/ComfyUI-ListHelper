@@ -513,5 +513,83 @@
         "name": "Image"
       }
     }
+  },
+  "PhotoMagazinePromptGenerator": {
+    "display_name": "Photo Magazine Prompt Generator",
+    "inputs": {
+      "model_name": {
+        "name": "Model Name"
+      },
+      "photo_style": {
+        "name": "Photo Style"
+      },
+      "custom_style": {
+        "name": "Custom Style"
+      },
+      "custom_scene": {
+        "name": "Custom Scene"
+      },
+      "content_pages": {
+        "name": "Content Pages"
+      },
+      "prompt_template": {
+        "name": "Prompt Template"
+      },
+      "features": {
+        "name": "Features"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Prompt"
+      }
+    }
+  },
+  "PhotoMagazineParser": {
+    "display_name": "Photo Magazine Parser",
+    "inputs": {
+      "llm_output": {
+        "name": "LLM Output"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Image Prompts"
+      },
+      "1": {
+        "name": "JSON Data"
+      }
+    }
+  },
+  "PhotoMagazineMaker": {
+    "display_name": "Photo Magazine Maker",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "json_data": {
+        "name": "JSON Data"
+      },
+      "template": {
+        "name": "Template"
+      },
+      "layout": {
+        "name": "Layout"
+      },
+      "font": {
+        "name": "Font"
+      },
+      "compress_pdf": {
+        "name": "Compress PDF"
+      },
+      "output_path": {
+        "name": "Output Path"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Result"
+      }
+    }
   }
 }

@@ -28,6 +28,7 @@ from .gguf_inference import GGUFInference
 from .model_downloader import ModelDownloader
 from .openai_helper import OpenAIHelper
 from .openrouter_llm import OpenRouterLLM
+from .photo_magazine_generator import PhotoMagazinePromptGenerator, PhotoMagazineParser, PhotoMagazineMaker
 
 class AudioListGenerator:
     @classmethod
@@ -1171,6 +1172,9 @@ NODE_CLASS_MAPPINGS = {
     "ModelDownloader": ModelDownloader,
     "OpenAIHelper": OpenAIHelper,
     "OpenRouterLLM": OpenRouterLLM,
+    "PhotoMagazinePromptGenerator": PhotoMagazinePromptGenerator,
+    "PhotoMagazineParser": PhotoMagazineParser,
+    "PhotoMagazineMaker": PhotoMagazineMaker,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1188,5 +1192,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ModelDownloader": "Model Downloader",
     "OpenAIHelper": "OpenAI Helper",
     "OpenRouterLLM": "OpenRouter LLM",
+    "PhotoMagazinePromptGenerator": "Photo Magazine Prompt Generator",
+    "PhotoMagazineParser": "Photo Magazine Parser",
+    "PhotoMagazineMaker": "Photo Magazine Maker",
 }
 

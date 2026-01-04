@@ -513,5 +513,83 @@
         "name": "图像"
       }
     }
+  },
+  "PhotoMagazinePromptGenerator": {
+    "display_name": "写真杂志提示词产生器",
+    "inputs": {
+      "model_name": {
+        "name": "模特儿名称"
+      },
+      "photo_style": {
+        "name": "拍摄风格"
+      },
+      "custom_style": {
+        "name": "自订风格"
+      },
+      "custom_scene": {
+        "name": "自订场景"
+      },
+      "content_pages": {
+        "name": "内容页数"
+      },
+      "prompt_template": {
+        "name": "提示词范本"
+      },
+      "features": {
+        "name": "人物特征"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示词"
+      }
+    }
+  },
+  "PhotoMagazineParser": {
+    "display_name": "写真杂志解析器",
+    "inputs": {
+      "llm_output": {
+        "name": "LLM 输出"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图片提示词"
+      },
+      "1": {
+        "name": "JSON 资料"
+      }
+    }
+  },
+  "PhotoMagazineMaker": {
+    "display_name": "写真杂志制作器",
+    "inputs": {
+      "images": {
+        "name": "图像"
+      },
+      "json_data": {
+        "name": "JSON 资料"
+      },
+      "template": {
+        "name": "范本"
+      },
+      "layout": {
+        "name": "版型"
+      },
+      "font": {
+        "name": "字体"
+      },
+      "compress_pdf": {
+        "name": "压缩 PDF"
+      },
+      "output_path": {
+        "name": "输出路径"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "结果"
+      }
+    }
   }
 }

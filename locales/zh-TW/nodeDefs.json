@@ -513,5 +513,83 @@
         "name": "圖像"
       }
     }
+  },
+  "PhotoMagazinePromptGenerator": {
+    "display_name": "寫真雜誌提示詞產生器",
+    "inputs": {
+      "model_name": {
+        "name": "模特兒名稱"
+      },
+      "photo_style": {
+        "name": "拍攝風格"
+      },
+      "custom_style": {
+        "name": "自訂風格"
+      },
+      "custom_scene": {
+        "name": "自訂場景"
+      },
+      "content_pages": {
+        "name": "內容頁數"
+      },
+      "prompt_template": {
+        "name": "提示詞範本"
+      },
+      "features": {
+        "name": "人物特徵"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示詞"
+      }
+    }
+  },
+  "PhotoMagazineParser": {
+    "display_name": "寫真雜誌解析器",
+    "inputs": {
+      "llm_output": {
+        "name": "LLM 輸出"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "圖片提示詞"
+      },
+      "1": {
+        "name": "JSON 資料"
+      }
+    }
+  },
+  "PhotoMagazineMaker": {
+    "display_name": "寫真雜誌製作器",
+    "inputs": {
+      "images": {
+        "name": "圖像"
+      },
+      "json_data": {
+        "name": "JSON 資料"
+      },
+      "template": {
+        "name": "範本"
+      },
+      "layout": {
+        "name": "版型"
+      },
+      "font": {
+        "name": "字體"
+      },
+      "compress_pdf": {
+        "name": "壓縮 PDF"
+      },
+      "output_path": {
+        "name": "輸出路徑"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "結果"
+      }
+    }
   }
 }
