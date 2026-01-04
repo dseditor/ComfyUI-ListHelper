@@ -11,4 +11,13 @@ except Exception as e:
     NODE_CLASS_MAPPINGS = NODES_MAPPINGS
     NODE_DISPLAY_NAME_MAPPINGS = NODES_DISPLAY_MAPPINGS
 
+# Import person feature extractor nodes
+try:
+    from .person_feature_extractor import NODE_CLASS_MAPPINGS as FEATURE_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as FEATURE_DISPLAY_MAPPINGS
+    # Merge the mappings
+    NODE_CLASS_MAPPINGS = {**NODE_CLASS_MAPPINGS, **FEATURE_MAPPINGS}
+    NODE_DISPLAY_NAME_MAPPINGS = {**NODE_DISPLAY_NAME_MAPPINGS, **FEATURE_DISPLAY_MAPPINGS}
+except Exception as e:
+    print(f"⚠️ Failed to load person feature extractor nodes: {e}")
+
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']

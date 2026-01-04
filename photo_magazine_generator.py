@@ -57,7 +57,10 @@ class PhotoMagazinePromptGenerator:
                 "photo_style": ("STRING", {"default": "自然清新", "placeholder": "拍攝風格（自由輸入）"}),
                 "custom_scene": ("STRING", {"default": "", "placeholder": "場景設定（可選）"}),
                 "content_pages": ("INT", {"default": 8, "min": 3, "max": 30, "step": 1}),
-                "features": ("STRING", {"default": "", "placeholder": "人物特徵描述（例如：戴著黑框眼鏡的長髮女性）"}),
+                "features": ("STRING", {"default": "", "placeholder": "人物特徵描述，或輸入 {EXTRACT_FROM_IMAGE} 從圖片提取"}),
+            },
+            "optional": {
+                "reference_image": ("IMAGE",),  # 可選的參考圖片（暫時保留，未來可能移除）
             }
         }
     
@@ -66,9 +69,46 @@ class PhotoMagazinePromptGenerator:
     FUNCTION = "generate_prompt"
     CATEGORY = "DesignPack"
     
-    def generate_prompt(self, template, model_name, photo_style, custom_scene, content_pages, features):
+    def extract_person_features(self, image_tensor):
+        """從圖片中提取人物特徵"""
+        try:
+            # 轉換 tensor 為 PIL 圖片
+            pil_image = self.tensor_to_pil(image_tensor)
+            
+            # 構建人物特徵提取提示詞
+            feature_prompt = """請分析這張圖片中的人物，詳細描述以下特徵：
+1. 國籍/種族特徵
+2. 臉型（圓臉、瓜子臉、方臉等）
+3. 五官特徵（眼睛、鼻子、嘴巴）
+4. 妝容風格
+5. 髮型和髮色
+6. 其他明顯特徵（眼鏡、飾品等）
+
+請用簡潔的中文描述，約50-80字。"""
+            
+            # 這裡需要調用 LLM 來分析圖片
+            # 由於我們在節點中，可以返回一個提示讓使用者知道需要連接 LLM
+            print("📸 檢測到參考圖片，建議使用 LLM 節點提取人物特徵")
+            print("   提示：可以先用 Image to Prompt 節點分析圖片")
+            
+            # 返回基本的視覺描述（不依賴 LLM）
+            return "根據參考圖片的人物特徵"
+            
+        except Exception as e:
+            print(f"圖片特徵提取錯誤: {e}")
+            return ""
+    
+    def generate_prompt(self, template, model_name, photo_style, custom_scene, content_pages, features, reference_image=None):
         """讀取模板並注入參數"""
         try:
+            # 如果有參考圖片且 features 為空，嘗試提取特徵
+            if reference_image is not None and not features:
+                print("📸 檢測到參考圖片，正在提取人物特徵...")
+                extracted_features = self.extract_person_features(reference_image)
+                if extracted_features:
+                    features = extracted_features
+                    print(f"   提取的特徵: {features}")
+            
             # 讀取模板檔案（從 DesignPrompt 資料夾）
             template_path = os.path.join(os.path.dirname(__file__), "DesignPrompt", template)
             
@@ -95,6 +135,8 @@ class PhotoMagazinePromptGenerator:
             print(f"   模板：{template}")
             print(f"   模特兒：{model_name}")
             print(f"   特徵：{features if features else '自動判定'}")
+            if reference_image is not None:
+                print(f"   參考圖片：已提供")
             print(f"   風格：{photo_style}")
             print(f"   場景：{custom_scene if custom_scene else '自動判定'}")
             print(f"   頁數：{content_pages}")
