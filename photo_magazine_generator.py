@@ -850,15 +850,25 @@ class PhotoMagazineMaker:
                     canvas_obj.drawString(text_center_x*mm - char_width/2, y_pos, char)
                     y_pos -= 35
                 
-                # 副標題（水平）
-                canvas_obj.setFont(font_name, 18)
+                # 副標題（水平）- 調整位置避免與 description 重疊
+                canvas_obj.setFont(font_name, 16)
                 canvas_obj.setFillColor(HexColor(template_config["secondary"]))
                 subtitle = cover_info.get("subtitle", "").strip() if cover_info.get("subtitle") else ""
                 if subtitle:
-                    subtitle_width = stringWidth(subtitle, font_name, 18)
-                    canvas_obj.drawString(text_center_x*mm - subtitle_width/2, 80*mm, subtitle)
+                    # 計算 subtitle 需要的行數
+                    available_width = text_area_width - 10
+                    subtitle_lines = self.wrap_text(subtitle, available_width, font_name, 16, canvas_obj)
+                    subtitle_height = len(subtitle_lines) * 20  # 每行約 20
+                    
+                    # 從較高位置開始，為 description 留出空間
+                    subtitle_y = 120*mm
+                    for line in subtitle_lines[:3]:  # 最多 3 行
+                        if line.strip():
+                            line_width = stringWidth(line, font_name, 16)
+                            canvas_obj.drawString(text_center_x*mm - line_width/2, subtitle_y, line)
+                        subtitle_y -= 20
                 
-                # 描述文案（水平，自動換行）- 適應性字體大小
+                # 描述文案（水平，自動換行）- 調整起始位置
                 description = cover_info.get("description", "").strip() if cover_info.get("description") else ""
                 if description:
                     # 使用適應性字體大小和文字寬度
@@ -868,7 +878,13 @@ class PhotoMagazineMaker:
                     canvas_obj.setFillColor(HexColor(template_config["text"]))
                     
                     lines = self.wrap_text(description, available_width, font_name, adaptive_font_size, canvas_obj)
-                    y_pos = 80*mm
+                    
+                    # 根據是否有 subtitle 調整起始位置
+                    if subtitle:
+                        y_pos = subtitle_y - 10  # 在 subtitle 下方，留 10 間距
+                    else:
+                        y_pos = 100*mm  # 如果沒有 subtitle，從較高位置開始
+                    
                     line_height = adaptive_font_size + 2
                     
                     for line in lines[:min(12, len(lines))]:  # 最多12行，適應性顯示
@@ -1325,13 +1341,13 @@ class PhotoMagazineMaker:
                     line_height = adaptive_font_size + 3  # 動態行高
                     
                     # 計算可用的文字區域高度
-                    title_area_height = 20*mm  # 標題區域高度
-                    padding_bottom = 8*mm  # 底部邊距
+                    title_area_height = 20*mm if title else 10*mm  # 標題區域高度
+                    padding_bottom = 10*mm  # 底部邊距（增加以確保不溢出）
                     available_text_height = box_height - title_area_height - padding_bottom
                     
-                    # 計算最大可顯示行數
+                    # 計算最大可顯示行數（更保守的計算）
                     max_lines = int(available_text_height / line_height)
-                    max_lines = max(max_lines, 8)  # 至少顯示8行
+                    max_lines = max(min(max_lines, len(content_lines)), 1)  # 至少1行，最多實際行數
                     
                     # 起始Y位置
                     start_y = box_y + box_height - title_area_height
@@ -1339,16 +1355,18 @@ class PhotoMagazineMaker:
                     
                     displayed_lines = 0
                     for line in content_lines:
-                        if displayed_lines >= max_lines:
+                        # 檢查是否還有空間顯示下一行
+                        next_y = y_position - line_height
+                        if next_y < (box_y + padding_bottom):  # 確保不超出底部邊界
                             break
-                        if y_position < box_y + padding_bottom:
+                        if displayed_lines >= max_lines:
                             break
                         if line.strip():
                             canvas_obj.drawString(box_x + 8*mm, y_position, line)
                             displayed_lines += 1
                         y_position -= line_height
                     
-                    print(f"版型B顯示了 {displayed_lines}/{len(content_lines)} 行文字，字體大小: {adaptive_font_size}, 行高: {line_height}")
+                    print(f"版型B顯示了 {displayed_lines}/{len(content_lines)} 行文字，字體大小: {adaptive_font_size}, 行高: {line_height}, 框高: {box_height}")
             
             elif layout == "版型C-簡約現代":
                 # 版型C故事頁：與封面相同的設計（左圖右文）但適應性布局
