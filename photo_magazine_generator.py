@@ -1890,7 +1890,10 @@ class PhotoMagazineMaker:
                 if cover_image:
                     # 創建滿版圖片
                     full_bleed = self.create_full_bleed_image(cover_image, 210*mm, 297*mm)
-                    c.drawImage(full_bleed, 0, 0, width=210*mm, height=297*mm, preserveAspectRatio=False)
+                    # 將 PIL Image 轉換為 ImageReader
+                    from reportlab.lib.utils import ImageReader
+                    img_reader = ImageReader(full_bleed)
+                    c.drawImage(img_reader, 0, 0, width=210*mm, height=297*mm, preserveAspectRatio=False)
                 else:
                     # 沒有圖片時使用純色背景
                     c.setFillColor(HexColor(template_config["primary"]))
