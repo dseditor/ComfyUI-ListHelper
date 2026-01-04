@@ -40,8 +40,19 @@ class PhotoMagazinePromptGenerator:
     
     @classmethod
     def INPUT_TYPES(cls):
+        # 獲取 DesignPrompt 資料夾中的模板列表
+        design_prompt_dir = os.path.join(os.path.dirname(__file__), "DesignPrompt")
+        template_files = ["photomagazine_json_output.md"]  # 預設模板
+        
+        if os.path.exists(design_prompt_dir):
+            # 讀取所有 .md 檔案
+            md_files = [f for f in os.listdir(design_prompt_dir) if f.endswith('.md')]
+            if md_files:
+                template_files = md_files
+        
         return {
             "required": {
+                "template": (template_files, {"default": template_files[0] if template_files else "photomagazine_json_output.md"}),
                 "model_name": ("STRING", {"default": "", "placeholder": "模特兒名稱（例如：小美、Lisa）"}),
                 "photo_style": ("STRING", {"default": "自然清新", "placeholder": "拍攝風格（自由輸入）"}),
                 "custom_scene": ("STRING", {"default": "", "placeholder": "場景設定（可選）"}),
@@ -55,23 +66,23 @@ class PhotoMagazinePromptGenerator:
     FUNCTION = "generate_prompt"
     CATEGORY = "DesignPack"
     
-    def generate_prompt(self, model_name, photo_style, custom_scene, content_pages, features):
+    def generate_prompt(self, template, model_name, photo_style, custom_scene, content_pages, features):
         """讀取模板並注入參數"""
         try:
             # 讀取模板檔案（從 DesignPrompt 資料夾）
-            template_path = os.path.join(os.path.dirname(__file__), "DesignPrompt", "photomagazine_json_output.md")
+            template_path = os.path.join(os.path.dirname(__file__), "DesignPrompt", template)
             
             if not os.path.exists(template_path):
                 return (f"錯誤：找不到模板檔案 {template_path}",)
             
             with open(template_path, 'r', encoding='utf-8') as f:
-                template = f.read()
+                template_content = f.read()
             
             # 準備人物特徵描述
             features_description = f"人物特徵：{features}" if features else "人物特徵：根據模特兒名稱自行判斷"
             
             # 注入參數
-            prompt = template.format(
+            prompt = template_content.format(
                 model_name=model_name,
                 features=features if features else "根據模特兒名稱自行判斷",
                 photo_style=photo_style,
@@ -81,6 +92,7 @@ class PhotoMagazinePromptGenerator:
             )
             
             print("📝 提示詞生成完成")
+            print(f"   模板：{template}")
             print(f"   模特兒：{model_name}")
             print(f"   特徵：{features if features else '自動判定'}")
             print(f"   風格：{photo_style}")
