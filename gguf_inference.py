@@ -14,6 +14,9 @@ import folder_paths
 import urllib.request
 from typing import Optional, Tuple, List
 
+# Import JSON prompt extractor for automatic prompt list extraction
+from .json_prompt_extractor import extract_prompts_from_json
+
 # Suggested models for download
 SUGGESTED_MODELS = {
     "Download: Z-Image": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q5_K_M.gguf",
@@ -281,8 +284,9 @@ class GGUFInference:
             }
         }
 
-    RETURN_TYPES = ("STRING", "INT",)
-    RETURN_NAMES = ("text", "used_seed",)
+    RETURN_TYPES = ("STRING", "INT", "STRING")
+    RETURN_NAMES = ("text", "used_seed", "prompts")
+    OUTPUT_IS_LIST = (False, False, True)  # prompts 是列表
     FUNCTION = "inference"
     CATEGORY = "ListHelper/LLM"
 
@@ -1247,7 +1251,16 @@ class GGUFInference:
             if not keep_model_loaded:
                 self._free_memory()
 
-            return (response_text, seed)
+            # 自動提取提示詞列表（如果輸出包含 JSON 格式的雜誌數據）
+            try:
+                prompts = extract_prompts_from_json(response_text)
+                if prompts:
+                    print(f"✅ 自動提取到 {len(prompts)} 個圖片提示詞")
+            except Exception as e:
+                print(f"ℹ️ 提示詞提取失敗（這是正常的，如果輸出不是雜誌 JSON）: {e}")
+                prompts = []
+
+            return (response_text, seed, prompts)
 
         except Exception as e:
             import traceback
@@ -1263,4 +1276,4 @@ class GGUFInference:
             if any(keyword in error_str for keyword in ['memory', 'load', 'allocation', 'cuda', 'out of memory']):
                 self._free_memory()
 
-            return (error_msg, seed)
+            return (error_msg, seed, [])  # 錯誤時返回空的提示詞列表
