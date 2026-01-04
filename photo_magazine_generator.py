@@ -57,7 +57,7 @@ class PhotoMagazinePromptGenerator:
                 "photo_style": ("STRING", {"default": "自然清新", "placeholder": "拍攝風格（自由輸入）"}),
                 "custom_scene": ("STRING", {"default": "", "placeholder": "場景設定（可選）"}),
                 "content_pages": ("INT", {"default": 8, "min": 3, "max": 30, "step": 1}),
-                "features": ("STRING", {"default": "", "placeholder": "人物特徵描述，或輸入 {EXTRACT_FROM_IMAGE} 從圖片提取"}),
+                "features": ("STRING", {"default": "", "placeholder": "人物特徵（可選，有圖片時自動提取）"}),
             },
             "optional": {
                 "reference_image": ("IMAGE",),  # 可選的參考圖片（暫時保留，未來可能移除）
@@ -101,13 +101,14 @@ class PhotoMagazinePromptGenerator:
     def generate_prompt(self, template, model_name, photo_style, custom_scene, content_pages, features, reference_image=None):
         """讀取模板並注入參數"""
         try:
-            # 如果有參考圖片且 features 為空，嘗試提取特徵
-            if reference_image is not None and not features:
-                print("📸 檢測到參考圖片，正在提取人物特徵...")
-                extracted_features = self.extract_person_features(reference_image)
-                if extracted_features:
-                    features = extracted_features
-                    print(f"   提取的特徵: {features}")
+            # 如果有參考圖片，自動使用 {EXTRACT_FROM_IMAGE} 佔位符
+            if reference_image is not None:
+                print("📸 檢測到參考圖片，自動使用 {EXTRACT_FROM_IMAGE} 佔位符")
+                features = "{EXTRACT_FROM_IMAGE}"
+                print("   提示：請在 LLM 節點中：")
+                print("   1. 連接此參考圖片")
+                print("   2. 載入 Prompt/extract_person_features.md")
+                print("   LLM 會自動提取人物特徵並替換佔位符")
             
             # 讀取模板檔案（從 DesignPrompt 資料夾）
             template_path = os.path.join(os.path.dirname(__file__), "DesignPrompt", template)
@@ -119,7 +120,12 @@ class PhotoMagazinePromptGenerator:
                 template_content = f.read()
             
             # 準備人物特徵描述
-            features_description = f"人物特徵：{features}" if features else "人物特徵：根據模特兒名稱自行判斷"
+            if features == "{EXTRACT_FROM_IMAGE}":
+                features_description = "人物特徵：{EXTRACT_FROM_IMAGE}"
+            elif features:
+                features_description = f"人物特徵：{features}"
+            else:
+                features_description = "人物特徵：根據模特兒名稱自行判斷"
             
             # 注入參數
             prompt = template_content.format(
@@ -136,7 +142,7 @@ class PhotoMagazinePromptGenerator:
             print(f"   模特兒：{model_name}")
             print(f"   特徵：{features if features else '自動判定'}")
             if reference_image is not None:
-                print(f"   參考圖片：已提供")
+                print(f"   參考圖片：✅ 已提供（將自動提取特徵）")
             print(f"   風格：{photo_style}")
             print(f"   場景：{custom_scene if custom_scene else '自動判定'}")
             print(f"   頁數：{content_pages}")
