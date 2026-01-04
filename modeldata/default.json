@@ -1,0 +1,5 @@
+{
+  "endpoint": "http://localhost:11434/v1/chat/completions",
+  "api_key": "ollama",
+  "model_name": "huihui_ai/qwen3-vl-abliterated:4b-instruct"
+}

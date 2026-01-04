@@ -16,21 +16,58 @@ try:
 except ImportError:
     print("⚠️ torchaudio 未安裝，音訊功能將無法使用")
 
+# Import JSON prompt extractor for automatic prompt list extraction
+from .json_prompt_extractor import extract_prompts_from_json
+
 class OpenAIHelper:
     """
     OpenAI Helper節點，用於呼叫OpenAI相容的API
-    支援圖片、音訊輸入，配置管理，模型列表獲取
+    支援圖片、音訊輸入，配置管理，模型列表獲取，多配置範本
     """
 
     @classmethod
-    def _load_config(cls):
-        """載入配置從openaimodel.json文件"""
-        config_file = os.path.join(os.path.dirname(__file__), "openaimodel.json")
+    def _get_config_files(cls):
+        """獲取 modeldata 資料夾中的所有配置檔案"""
+        modeldata_dir = os.path.join(os.path.dirname(__file__), "modeldata")
+        
+        # 確保資料夾存在
+        if not os.path.exists(modeldata_dir):
+            os.makedirs(modeldata_dir)
+            # 創建預設配置
+            default_config = {
+                "endpoint": "",
+                "api_key": "",
+                "model_name": ""
+            }
+            default_path = os.path.join(modeldata_dir, "default.json")
+            with open(default_path, 'w', encoding='utf-8') as f:
+                json.dump(default_config, f, ensure_ascii=False, indent=2)
+        
+        # 獲取所有 .json 檔案
+        config_files = []
         try:
-            with open(config_file, 'r', encoding='utf-8') as f:
+            for file in os.listdir(modeldata_dir):
+                if file.lower().endswith('.json'):
+                    config_files.append(file)
+        except Exception as e:
+            print(f"⚠️ 讀取 modeldata 資料夾失敗: {e}")
+        
+        if not config_files:
+            return ["default.json"]
+        
+        return sorted(config_files)
+
+    @classmethod
+    def _load_config(cls, config_file="default.json"):
+        """載入指定的配置檔案"""
+        modeldata_dir = os.path.join(os.path.dirname(__file__), "modeldata")
+        config_path = os.path.join(modeldata_dir, config_file)
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"⚠️ 載入openaimodel.json失敗: {e}")
+            print(f"⚠️ 載入配置檔案 {config_file} 失敗: {e}")
             return {
                 "endpoint": "",
                 "api_key": "",
@@ -38,19 +75,21 @@ class OpenAIHelper:
             }
 
     @classmethod
-    def _save_config(cls, endpoint, api_key, model_name):
-        """保存配置到openaimodel.json文件"""
-        config_file = os.path.join(os.path.dirname(__file__), "openaimodel.json")
+    def _save_config(cls, config_file, endpoint, api_key, model_name):
+        """保存配置到指定的配置檔案"""
+        modeldata_dir = os.path.join(os.path.dirname(__file__), "modeldata")
+        config_path = os.path.join(modeldata_dir, config_file)
+        
         try:
             config = {
                 "endpoint": endpoint,
                 "api_key": api_key,
                 "model_name": model_name
             }
-            with open(config_file, 'w', encoding='utf-8') as f:
+            with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"❌ 保存openaimodel.json失敗: {e}")
+            print(f"❌ 保存配置檔案 {config_file} 失敗: {e}")
 
     @classmethod
     def _get_prompt_templates(cls):
@@ -90,8 +129,12 @@ class OpenAIHelper:
 
     @classmethod
     def INPUT_TYPES(cls):
-        # 載入保存的配置
-        config = cls._load_config()
+        # 獲取配置檔案列表
+        config_files = cls._get_config_files()
+        
+        # 載入預設配置（第一個配置檔案）
+        default_config_file = config_files[0] if config_files else "default.json"
+        config = cls._load_config(default_config_file)
 
         # 獲取範本列表
         templates = cls._get_prompt_templates()
@@ -99,6 +142,10 @@ class OpenAIHelper:
 
         return {
             "required": {
+                "config_template": (config_files, {
+                    "default": default_config_file,
+                    "tooltip": "選擇 API 配置範本（從 modeldata 資料夾）"
+                }),
                 "endpoint": ("STRING", {
                     "multiline": False,
                     "default": config.get("endpoint", ""),
@@ -141,8 +188,9 @@ class OpenAIHelper:
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("text", "model_name_list")
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("text", "model_name_list", "prompts")
+    OUTPUT_IS_LIST = (False, False, True)  # prompts 是列表
     FUNCTION = "process_openai"
     CATEGORY = "ListHelper/LLM"
 
@@ -331,23 +379,23 @@ class OpenAIHelper:
             print(f"❌ API呼叫異常: {e}")
             return {"error": {"message": str(e)}}
 
-    def process_openai(self, endpoint, api_key, model_name, user_prompt, prompt_template, max_tokens,
+    def process_openai(self, config_template, endpoint, api_key, model_name, user_prompt, prompt_template, max_tokens,
                        system_prompt=None, image1=None, image2=None, image3=None,
                        audio=None, file_path=None):
         """處理OpenAI請求"""
 
         # 驗證必填參數
         if not endpoint or not endpoint.strip():
-            return ("❌ 錯誤: 請提供API端點", "")
+            return ("❌ 錯誤: 請提供API端點", "", [])
 
         if not api_key or not api_key.strip():
-            return ("❌ 錯誤: 請提供API金鑰", "")
+            return ("❌ 錯誤: 請提供API金鑰", "", [])
 
         if not model_name or not model_name.strip():
-            return ("❌ 錯誤: 請提供模型名稱", "")
+            return ("❌ 錯誤: 請提供模型名稱", "", [])
 
-        # 保存配置
-        self._save_config(endpoint.strip(), api_key.strip(), model_name.strip())
+        # 保存配置到選擇的配置範本
+        self._save_config(config_template, endpoint.strip(), api_key.strip(), model_name.strip())
 
         # 獲取模型列表
         model_list = self._get_model_list(endpoint.strip(), api_key.strip())
@@ -401,7 +449,7 @@ class OpenAIHelper:
         audio_b64 = None
         if audio is not None:
             if not TORCHAUDIO_AVAILABLE:
-                return ("❌ 錯誤: torchaudio未安裝，無法處理音訊", model_list)
+                return ("❌ 錯誤: torchaudio未安裝，無法處理音訊", model_list, [])
 
             print(f"處理音訊輸入")
             try:
@@ -417,10 +465,10 @@ class OpenAIHelper:
                     })
                     print(f"✓ 音訊處理成功")
                 else:
-                    return ("❌ 錯誤: 音訊處理失敗", model_list)
+                    return ("❌ 錯誤: 音訊處理失敗", model_list, [])
             except Exception as e:
                 print(f"❌ 處理音訊時出錯: {str(e)}")
-                return (f"❌ 錯誤: 處理音訊時出錯: {str(e)}", model_list)
+                return (f"❌ 錯誤: 處理音訊時出錯: {str(e)}", model_list, [])
 
         # 添加用戶消息
         if len(user_content) > 1:
@@ -454,7 +502,7 @@ class OpenAIHelper:
 
         # 處理響應
         if not response:
-            return ("❌ API呼叫失敗", model_list)
+            return ("❌ API呼叫失敗", model_list, [])
 
         # 檢查錯誤
         if 'error' in response:
@@ -463,13 +511,22 @@ class OpenAIHelper:
                 error_msg = f"❌ API錯誤: {error_info.get('message', str(error_info))}"
             else:
                 error_msg = f"❌ API錯誤: {str(error_info)}"
-            return (error_msg, model_list)
+            return (error_msg, model_list, [])
 
         if 'choices' not in response or not response['choices']:
-            return ("❌ API回應格式異常", model_list)
+            return ("❌ API回應格式異常", model_list, [])
 
         # 獲取回應訊息
         message = response['choices'][0]['message']
         response_content = message.get('content', '')
 
-        return (response_content, model_list)
+        # 自動提取提示詞列表（如果輸出包含 JSON 格式的雜誌數據）
+        try:
+            prompts = extract_prompts_from_json(response_content)
+            if prompts:
+                print(f"✅ 自動提取到 {len(prompts)} 個圖片提示詞")
+        except Exception as e:
+            print(f"ℹ️ 提示詞提取失敗（這是正常的，如果輸出不是雜誌 JSON）: {e}")
+            prompts = []
+
+        return (response_content, model_list, prompts)
