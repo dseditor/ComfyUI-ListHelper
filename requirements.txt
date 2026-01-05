@@ -1,5 +1,3 @@
 regex
 accelerate
-transformers
-safetensors
-requests
+reportlab
