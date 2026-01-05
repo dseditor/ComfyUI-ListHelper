@@ -26,3 +26,6 @@ __pycache__/
 
 # Claude AI directory
 .claude/
+
+# Font files (may have licensing issues)
+fonts/
