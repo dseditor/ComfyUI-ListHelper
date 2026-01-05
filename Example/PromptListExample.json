@@ -1,0 +1,1038 @@
+{
+  "id": "b1c3aee6-2524-431f-abef-6517a61b2edb",
+  "revision": 0,
+  "last_node_id": 63,
+  "last_link_id": 103,
+  "nodes": [
+    {
+      "id": 40,
+      "type": "ModelSamplingAuraFlow",
+      "pos": [
+        -3070,
+        -1250
+      ],
+      "size": [
+        269.9869791666667,
+        58
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 62
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            63
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.66",
+        "Node name for S&R": "ModelSamplingAuraFlow",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        3
+      ]
+    },
+    {
+      "id": 41,
+      "type": "PathchSageAttentionKJ",
+      "pos": [
+        -2740,
+        -1150
+      ],
+      "size": [
+        269.9869791666667,
+        82
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 63
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            68
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "6ee278aa7d802c03ad713a7c5fbc02861b6773a8",
+        "Node name for S&R": "PathchSageAttentionKJ",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "auto",
+        false
+      ]
+    },
+    {
+      "id": 46,
+      "type": "VAEEncode",
+      "pos": [
+        -2340,
+        -1380
+      ],
+      "size": [
+        187.48697916666669,
+        46
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 85
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 76
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.66",
+        "Node name for S&R": "VAEEncode",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 45,
+      "type": "ConditioningZeroOut",
+      "pos": [
+        -2350,
+        -1280
+      ],
+      "size": [
+        197.66927083333334,
+        26
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 66
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            70
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.67",
+        "Node name for S&R": "ConditioningZeroOut",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 39,
+      "type": "CFGNorm",
+      "pos": [
+        -3070,
+        -1380
+      ],
+      "size": [
+        269.9869791666667,
+        58
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 73
+        }
+      ],
+      "outputs": [
+        {
+          "name": "patched_model",
+          "type": "MODEL",
+          "links": [
+            62
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.66",
+        "Node name for S&R": "CFGNorm",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        1
+      ]
+    },
+    {
+      "id": 47,
+      "type": "KSampler",
+      "pos": [
+        -2110,
+        -1400
+      ],
+      "size": [
+        269.9869791666667,
+        262
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 68
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 79
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 70
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 93
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            65
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.50",
+        "Node name for S&R": "KSampler",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        432704803442879,
+        "fixed",
+        6,
+        1,
+        "euler",
+        "simple",
+        1
+      ]
+    },
+    {
+      "id": 42,
+      "type": "TextEncodeQwenImageEditPlus",
+      "pos": [
+        -2770,
+        -1380
+      ],
+      "size": [
+        399.9479166666667,
+        168
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 74
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 75
+        },
+        {
+          "name": "image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 86
+        },
+        {
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 95
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            66,
+            78
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.66",
+        "Node name for S&R": "TextEncodeQwenImageEditPlus",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "將房間布置為精緻的工業風空間，保持基本結構不變，補充植栽、軟裝家具、硬體裝潢的一致性風格"
+      ]
+    },
+    {
+      "id": 49,
+      "type": "FluxKontextMultiReferenceLatentMethod",
+      "pos": [
+        -2430,
+        -1100
+      ],
+      "size": [
+        300,
+        70
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 78
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            79
+          ]
+        }
+      ],
+      "title": "Edit Model Reference Method",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "FluxKontextMultiReferenceLatentMethod",
+        "widget_ue_connectable": {},
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65
+      },
+      "widgets_values": [
+        "index_timestep_zero"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 33,
+      "type": "VAELoader",
+      "pos": [
+        -3370,
+        -1000
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            75,
+            76,
+            77
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.6.0",
+        "Node name for S&R": "VAELoader",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "Qwen_Image-VAE.safetensors"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoaderGGUF",
+      "pos": [
+        -3380,
+        -1140
+      ],
+      "size": [
+        290,
+        90
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            74
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-GGUF",
+        "ver": "cf0573351ac260d629d460d97f09b09ac17d3726",
+        "Node name for S&R": "CLIPLoaderGGUF",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "Qwen2.5-VL-7B-Instruct-Q8_0.gguf",
+        "qwen_image"
+      ]
+    },
+    {
+      "id": 38,
+      "type": "UNETLoader",
+      "pos": [
+        -3380,
+        -1270
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            73
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.6.0",
+        "Node name for S&R": "UNETLoader",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "qwen_image_edit_2511_fp8_e4m3fn_scaled_lightning_comfyui.safetensors",
+        "default"
+      ]
+    },
+    {
+      "id": 57,
+      "type": "EmptyLatentImage",
+      "pos": [
+        -3390,
+        -1430
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            93
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.6.0",
+        "Node name for S&R": "EmptyLatentImage",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        1304,
+        1504,
+        1
+      ]
+    },
+    {
+      "id": 44,
+      "type": "VAEDecode",
+      "pos": [
+        -2350,
+        -1200
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 65
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 77
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            72
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.6.0",
+        "Node name for S&R": "VAEDecode",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 48,
+      "type": "SaveImage",
+      "pos": [
+        -2640,
+        -2290
+      ],
+      "size": [
+        500,
+        760
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 72
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.50",
+        "Node name for S&R": "SaveImage",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "QwenEdit/ComfyUI"
+      ]
+    },
+    {
+      "id": 59,
+      "type": "ShowText|pysssss",
+      "pos": [
+        -3050,
+        -2120
+      ],
+      "size": [
+        380,
+        510
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 101
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "aac13aa7ce35b07d43633c3bbe654a38c00d74f5",
+        "Node name for S&R": "ShowText|pysssss",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "保持女子的臉部和髮型特徵不變，她身穿標準日式高中制服——白色短袖襯衫、深藍色百褶裙與黑色皮帶，搭配黑色長筒靴，在綠蔭叢林小徑上進行敏捷跑酷動作，背景為校園後山自然景觀，陽光穿透樹葉形成斑點光影，動態捕捉中景鏡頭，高精度細節呈現，4K超高清，專業運動攝影風格",
+        "保持女子的臉部和髮型特徵不變，她身穿標準日式高中制服——白色短袖襯衫、深藍色百褶裙與黑色皮帶，搭配黑色長筒靴，在校園廢棄操場邊緣跳躍翻轉，背景是破舊圍牆與藤蔓攀爬的樹木，低角度跟拍鏡頭強調動作張力，高分辨率細節表現，4K畫質，動態捕捉真實感",
+        "保持女子的臉部和髮型特徵不變，她身穿標準日式高中制服——白色短袖襯衫、深藍色百褶裙與黑色皮帶，搭配黑色長筒靴，在校園天台邊緣疾速滑行翻越欄杆，背景為城市建築群與遠處天空線條，鏡頭快速切換捕捉動作節奏，高能動態場景，8K超高清，專業攝影風格",
+        "保持女子的臉部和髮型特徵不變，她身穿標準日式高中制服——白色短袖襯衫、深藍色百褶裙與黑色皮帶，搭配黑色長筒靴，在雨後濕潤跑道上快速穿越水坑並完成空中翻轉動作，背景是校園教學樓與模糊車流線條，霧氣朦朧氛圍中強調運動美感，高品質細節渲染，4K高清",
+        "保持女子的臉部和髮型特徵不變，她身穿標準日式高中制服——白色短袖襯衫、深藍色百褶裙與黑色皮帶，搭配黑色長筒靴，在夜間燈光下的校園走廊急轉彎衝刺，鏡頭從側面跟拍突顯速度感，背景為霓虹招牌與模糊人影，動態光影強烈對比，高品質運動攝影"
+      ]
+    },
+    {
+      "id": 50,
+      "type": "GGUFInference",
+      "pos": [
+        -3400,
+        -2130
+      ],
+      "size": [
+        330,
+        540
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "used_seed",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "prompts",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            95,
+            101
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "4145df5e4639b74007041df8142ee7e53a6da827",
+        "Node name for S&R": "GGUFInference",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "Download: QwenVL",
+        "產生五組連續的分鏡提示詞，用以形容女子穿著學校制服在校園中帥氣的跑酷，提示詞的開頭必須是「保持女子的臉部和髮型特徵不變」同時為了場景的連貫，請給五組提示詞相同的衣服描述",
+        "simple_prompt_list.md",
+        "",
+        3072,
+        0.7,
+        0.9,
+        40,
+        966018603631154,
+        "randomize",
+        false,
+        "Download: QwenVL mmproj",
+        true
+      ]
+    },
+    {
+      "id": 10,
+      "type": "LoadImage",
+      "pos": [
+        -3840,
+        -1450
+      ],
+      "size": [
+        410,
+        510
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            85,
+            86
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.50",
+        "Node name for S&R": "LoadImage",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "IMG_PITU_20220917_144728(1).jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 63,
+      "type": "PreviewAny",
+      "pos": [
+        -3630,
+        -2120
+      ],
+      "size": [
+        210,
+        166
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 103
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.6.0",
+        "widget_ue_connectable": {},
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [
+        null,
+        null,
+        false
+      ]
+    },
+    {
+      "id": 60,
+      "type": "ModelDownloader",
+      "pos": [
+        -3990,
+        -2120
+      ],
+      "size": [
+        320,
+        360
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "status_message",
+          "type": "STRING",
+          "links": [
+            103
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "Listhelper",
+        "ver": "7f7a1979562505cf2071647edbdc062f05deccab",
+        "Node name for S&R": "ModelDownloader",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "diffusion_models\nhttps://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/qwen_image_edit_2511_fp8_e4m3fn_scaled_lightning_comfyui.safetensors\nCLIP\nhttps://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-Q8_0.gguf\nhttps://huggingface.co/QuantStack/Qwen-Image-Edit-GGUF/resolve/main/mmproj/Qwen2.5-VL-7B-Instruct-mmproj-BF16.gguf\nVAE\nhttps://huggingface.co/QuantStack/Qwen-Image-GGUF/resolve/main/VAE/Qwen_Image-VAE.safetensors\n",
+        false,
+        true,
+        20,
+        8
+      ]
+    }
+  ],
+  "links": [
+    [
+      62,
+      39,
+      0,
+      40,
+      0,
+      "MODEL"
+    ],
+    [
+      63,
+      40,
+      0,
+      41,
+      0,
+      "MODEL"
+    ],
+    [
+      65,
+      47,
+      0,
+      44,
+      0,
+      "LATENT"
+    ],
+    [
+      66,
+      42,
+      0,
+      45,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      68,
+      41,
+      0,
+      47,
+      0,
+      "MODEL"
+    ],
+    [
+      70,
+      45,
+      0,
+      47,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      72,
+      44,
+      0,
+      48,
+      0,
+      "IMAGE"
+    ],
+    [
+      73,
+      38,
+      0,
+      39,
+      0,
+      "MODEL"
+    ],
+    [
+      74,
+      2,
+      0,
+      42,
+      0,
+      "CLIP"
+    ],
+    [
+      75,
+      33,
+      0,
+      42,
+      1,
+      "VAE"
+    ],
+    [
+      76,
+      33,
+      0,
+      46,
+      1,
+      "VAE"
+    ],
+    [
+      77,
+      33,
+      0,
+      44,
+      1,
+      "VAE"
+    ],
+    [
+      78,
+      42,
+      0,
+      49,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      79,
+      49,
+      0,
+      47,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      85,
+      10,
+      0,
+      46,
+      0,
+      "IMAGE"
+    ],
+    [
+      86,
+      10,
+      0,
+      42,
+      2,
+      "IMAGE"
+    ],
+    [
+      93,
+      57,
+      0,
+      47,
+      3,
+      "LATENT"
+    ],
+    [
+      95,
+      50,
+      2,
+      42,
+      5,
+      "STRING"
+    ],
+    [
+      101,
+      50,
+      2,
+      59,
+      0,
+      "STRING"
+    ],
+    [
+      103,
+      60,
+      0,
+      63,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Group",
+      "bounding": [
+        -3410,
+        -1500,
+        1610,
+        580
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ue_links": [],
+    "ds": {
+      "scale": 1,
+      "offset": [
+        4148.385967460257,
+        2032.2649393762363
+      ]
+    },
+    "links_added_by_ue": [],
+    "frontendVersion": "1.35.9",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
+    "workflowRendererVersion": "LG"
+  },
+  "version": 0.4
+}

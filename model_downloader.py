@@ -126,7 +126,25 @@ class ModelDownloader:
             for url in urls
         )
 
-        # Initialize downloader (only if using S3C)
+        # Step 1: Check if huggingface_hub is available (before any other operations)
+        hf_available = False
+        if all_hf_urls:
+            try:
+                import huggingface_hub
+                hf_available = True
+                print("ModelDownloader: huggingface_hub 已安裝且可用")
+            except ImportError:
+                print("ModelDownloader: huggingface_hub 未安裝")
+                # Check if user requires HF Hub (use_custom_path=False for HF URLs)
+                if not use_custom_path:
+                    return (
+                        "錯誤：偵測到 HuggingFace URL 但未安裝 huggingface_hub。\n"
+                        "請選擇以下其中一種方式：\n"
+                        "1. 安裝 huggingface_hub：pip install huggingface_hub\n"
+                        "2. 啟用「使用自訂路徑」選項，使用 S3C 或 HTTP 直接下載",
+                    )
+
+        # Step 2: Initialize S3C downloader (only if using S3C)
         s3c = None
         if use_s3c:
             try:
@@ -146,27 +164,16 @@ class ModelDownloader:
             except Exception as e:
                 return (f"錯誤：無法設定 S3impleClient：{str(e)}",)
 
-        # Auto-detect and apply HuggingFace patch if conditions are met
-        hf_available = False
+        # Step 3: Apply HuggingFace patch (ONLY if both S3C and HF are available)
         patch_applied = False
-        if all_hf_urls:
+        if use_s3c and s3c and hf_available and all_hf_urls:
             try:
-                import huggingface_hub
-                hf_available = True
-
-                # Only apply patch if using S3C
-                if use_s3c and s3c:
-                    try:
-                        s3c.patch_huggingface_hub()
-                        patch_applied = True
-                        print("ModelDownloader: HuggingFace Hub 加速已啟用")
-                    except Exception as patch_error:
-                        print(f"ModelDownloader: 無法套用 HF patch ({str(patch_error)})，使用標準 HTTP 下載")
-                        hf_available = False
-
-            except ImportError:
-                print("ModelDownloader: huggingface_hub 未安裝，使用標準 HTTP 下載")
-                hf_available = False
+                s3c.patch_huggingface_hub()
+                patch_applied = True
+                print("ModelDownloader: HuggingFace Hub 加速已啟用（S3C patch 已套用）")
+            except Exception as patch_error:
+                print(f"ModelDownloader: 警告 - 無法套用 HF patch ({str(patch_error)})，將改用其他下載方式")
+                # Note: Don't set hf_available to False here, HF Hub itself is still usable
 
         # Start downloading
         results = []
@@ -251,7 +258,13 @@ class ModelDownloader:
 
                                 if result.success:
                                     size_mb = result.total_bytes / (1024 * 1024)
-                                    method = "(S3C + HF patch)" if patch_applied else "(S3C)"
+                                    # Determine download method description
+                                    if patch_applied:
+                                        method = "(S3C + HF 加速)"
+                                    elif self._is_huggingface_url(url) and not hf_available:
+                                        method = "(S3C 直接下載，HF 未安裝)"
+                                    else:
+                                        method = "(S3C)"
                                     results.append(f"✓ {filename} ({size_mb:.2f} MB) {method}")
                                     print(f"  ✓ 下載成功 - {size_mb:.2f} MB {method}")
                                 else:
