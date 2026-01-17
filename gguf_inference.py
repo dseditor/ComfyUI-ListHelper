@@ -293,62 +293,95 @@ class GGUFInference:
     CATEGORY = "ListHelper/LLM"
 
     def _free_memory(self):
-        """Free GPU and system memory"""
+        """Free memory with robust handling for Vision Handlers & Zombie Wrappers"""
+        print("🧹 Releasing resources...")
         try:
-            # Clear chat_handler first (it may hold references to model)
+            import llama_cpp
+            
+            # 1. Vision Cleanup (Qwen2.5-VL / Llava)
             if self.clip_model_array is not None:
-                try:
-                    # Try to explicitly close/cleanup chat_handler if it has such methods
-                    if hasattr(self.clip_model_array, 'clip_ctx') and self.clip_model_array.clip_ctx is not None:
-                        del self.clip_model_array.clip_ctx
-                    if hasattr(self.clip_model_array, '_clip_free'):
-                        try:
-                            self.clip_model_array._clip_free()
-                        except:
-                            pass
-                except:
-                    pass
+                # Capture pointer (legacy handlers)
+                clip_ptr = None
+                if hasattr(self.clip_model_array, 'clip_model'):
+                    clip_ptr = self.clip_model_array.clip_model
+                elif hasattr(self.clip_model_array, 'vision_model'):
+                    clip_ptr = self.clip_model_array.vision_model
+
+                # A. Close Exit Stack (Crucial for Qwen25VLChatHandler)
+                if hasattr(self.clip_model_array, '_exit_stack') and self.clip_model_array._exit_stack:
+                    try: self.clip_model_array._exit_stack.close()
+                    except: pass
+
+                # B. Standard Close
+                if hasattr(self.clip_model_array, 'close'):
+                    try: self.clip_model_array.close()
+                    except: pass
+                
+                # C. Force Kill (Legacy/Direct Pointer)
+                if clip_ptr:
+                     try: llama_cpp.llama_free_model(clip_ptr)
+                     except: pass
 
                 del self.clip_model_array
                 self.clip_model_array = None
 
-                # Force garbage collection after freeing chat_handler
-                gc.collect()
-
-            # Clear model
+            # 2. Main Model Cleanup
             if self.model is not None:
-                try:
-                    # Try to explicitly close model context if available
-                    if hasattr(self.model, 'close'):
-                        self.model.close()
-                    if hasattr(self.model, '_ctx') and self.model._ctx is not None:
-                        del self.model._ctx
-                except:
-                    pass
+                # --- CAPTURE RAW POINTERS ---
+                raw_model_ptr = None
+                raw_ctx_ptr = None
+                
+                if hasattr(self.model, '_model') and self.model._model:
+                    if hasattr(self.model._model, 'model'):
+                        raw_model_ptr = self.model._model.model
+                    else:
+                        raw_model_ptr = self.model._model
+                elif hasattr(self.model, 'model') and self.model.model:
+                     raw_model_ptr = self.model.model
 
+                if hasattr(self.model, '_ctx') and self.model._ctx:
+                    if hasattr(self.model._ctx, 'ctx'):
+                        raw_ctx_ptr = self.model._ctx.ctx
+                    else:
+                        raw_ctx_ptr = self.model._ctx
+                
+                # A. Try Standard Close
+                if hasattr(self.model, 'close'):
+                    try: self.model.close()
+                    except: pass
+                
+                # B. FORCE KILL using Captured Pointers
+                if raw_model_ptr:
+                    try: llama_cpp.llama_free_model(raw_model_ptr)
+                    except: pass
+
+                if raw_ctx_ptr:
+                    try: llama_cpp.llama_free(raw_ctx_ptr)
+                    except: pass
+
+                # C. Nullify Wrappers
+                if hasattr(self.model, '_model'): self.model._model = None
+                if hasattr(self.model, '_ctx'): self.model._ctx = None
+                
                 del self.model
                 self.model = None
 
             self.current_model_path = None
             self.current_mmproj_path = None
 
-            # Run garbage collection multiple times to ensure cleanup
-            for _ in range(3):
-                gc.collect()
-
-            # Try to free CUDA memory if available
+            # 3. System Cleanup
+            import gc
+            gc.collect() 
+            gc.collect() 
             try:
                 import torch
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
-                    torch.cuda.synchronize()
-                    # Force empty cache again
-                    torch.cuda.empty_cache()
-            except:
-                pass
+                    torch.cuda.ipc_collect()
+            except: pass
 
-            # Memory freed silently
-            pass
+            print("✓ Resources released")
+
         except Exception as e:
             print(f"⚠️ Error freeing memory: {e}")
 
@@ -888,6 +921,8 @@ class GGUFInference:
                 "n_ctx": 8192,
                 "n_gpu_layers": -1,  # Use GPU if available
                 "verbose": False,
+                "use_mmap": False, # Disable mmap for clean unload
+                "use_mlock": False,
             }
 
             # Load vision model if it's a VL model and vision is enabled
@@ -1223,6 +1258,26 @@ class GGUFInference:
                     print("⚠️ GGML compatibility error detected during force reload")
                 else:
                     raise
+
+        # --- NEW: Clear KV Cache to prevent context overflow on re-runs ---
+        try:
+             import llama_cpp
+             # Attempt to find the low-level context pointer
+             ctx_ptr = getattr(self.model, 'ctx', None)
+             if not ctx_ptr and hasattr(self.model, '_ctx'):
+                 ctx_ptr = getattr(self.model._ctx, 'ctx', self.model._ctx)
+
+             if ctx_ptr:
+                 # Strategy A: Modern API (v0.3+)
+                 if hasattr(llama_cpp, 'llama_get_memory'):
+                     mem = llama_cpp.llama_get_memory(ctx_ptr)
+                     llama_cpp.llama_memory_seq_rm(mem, -1, 0, -1)
+                 # Strategy B: Legacy API
+                 elif hasattr(llama_cpp, 'llama_kv_cache_seq_rm'):
+                     llama_cpp.llama_kv_cache_seq_rm(ctx_ptr, -1, 0, -1)
+        except Exception as e:
+             print(f"Warning: Could not clear KV cache at start: {e}")
+        # ---------------------------------------------------------------
 
         # Handle ggml error with auto-reinstall
         if ggml_error_occurred and auto_install_llama_cpp:
