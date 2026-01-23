@@ -23,7 +23,7 @@ class ModelDownloader:
                     "tooltip": "Download list format:\nFolder name\nURL1\nURL2\n..."
                 }),
                 "use_s3c": ("BOOLEAN", {
-                    "default": True,
+                    "default": False,
                     "tooltip": "使用 S3impleClient 進行加速下載（如停用則使用普通 HTTP 下載）"
                 }),
                 "use_custom_path": ("BOOLEAN", {
