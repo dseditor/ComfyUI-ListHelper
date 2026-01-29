@@ -294,74 +294,94 @@ class GGUFInference:
     CATEGORY = "ListHelper/LLM"
 
     def _free_memory(self):
-        """Free GPU and system memory safely
-
-        Uses only Python-level APIs to avoid CUDA errors from direct C API calls.
-        """
+        """Free memory with robust handling for Vision Handlers & Zombie Wrappers"""
+        print("🧹 Releasing resources...")
         try:
-            # Step 1: Synchronize CUDA before any cleanup
-            try:
-                import torch
-                if torch.cuda.is_available():
-                    torch.cuda.synchronize()
-            except:
-                pass
-
-            # Step 2: Clear chat_handler first (it holds references to vision model)
+            import llama_cpp
+            
+            # 1. Vision Cleanup (Qwen2.5-VL / Llava)
             if self.clip_model_array is not None:
-                try:
-                    # Use close() if available (safe Python API)
-                    if hasattr(self.clip_model_array, 'close'):
-                        self.clip_model_array.close()
-                    # Fallback: try _clip_free for older versions
-                    elif hasattr(self.clip_model_array, '_clip_free'):
-                        self.clip_model_array._clip_free()
-                except Exception as e:
-                    pass  # Ignore errors, continue cleanup
+                # Capture pointer (legacy handlers)
+                clip_ptr = None
+                if hasattr(self.clip_model_array, 'clip_model'):
+                    clip_ptr = self.clip_model_array.clip_model
+                elif hasattr(self.clip_model_array, 'vision_model'):
+                    clip_ptr = self.clip_model_array.vision_model
+
+                # A. Close Exit Stack (Crucial for Qwen25VLChatHandler)
+                if hasattr(self.clip_model_array, '_exit_stack') and self.clip_model_array._exit_stack:
+                    try: self.clip_model_array._exit_stack.close()
+                    except: pass
+
+                # B. Standard Close
+                if hasattr(self.clip_model_array, 'close'):
+                    try: self.clip_model_array.close()
+                    except: pass
+                
+                # C. Force Kill (Legacy/Direct Pointer)
+                if clip_ptr:
+                     try: llama_cpp.llama_free_model(clip_ptr)
+                     except: pass
 
                 del self.clip_model_array
                 self.clip_model_array = None
-                gc.collect()
 
-            # Step 3: Clear main model using safe Python APIs only
+            # 2. Main Model Cleanup
             if self.model is not None:
-                try:
-                    # Reset model state if available (clears KV cache safely)
-                    if hasattr(self.model, 'reset'):
-                        self.model.reset()
+                # --- CAPTURE RAW POINTERS ---
+                raw_model_ptr = None
+                raw_ctx_ptr = None
+                
+                if hasattr(self.model, '_model') and self.model._model:
+                    if hasattr(self.model._model, 'model'):
+                        raw_model_ptr = self.model._model.model
+                    else:
+                        raw_model_ptr = self.model._model
+                elif hasattr(self.model, 'model') and self.model.model:
+                     raw_model_ptr = self.model.model
 
-                    # Use close() method (Python wrapper's safe cleanup)
-                    if hasattr(self.model, 'close'):
-                        self.model.close()
-                except Exception as e:
-                    pass  # Ignore errors, continue cleanup
+                if hasattr(self.model, '_ctx') and self.model._ctx:
+                    if hasattr(self.model._ctx, 'ctx'):
+                        raw_ctx_ptr = self.model._ctx.ctx
+                    else:
+                        raw_ctx_ptr = self.model._ctx
+                
+                # A. Try Standard Close
+                if hasattr(self.model, 'close'):
+                    try: self.model.close()
+                    except: pass
+                
+                # B. FORCE KILL using Captured Pointers
+                if raw_model_ptr:
+                    try: llama_cpp.llama_free_model(raw_model_ptr)
+                    except: pass
 
-                # Nullify reference and let Python GC handle the rest
+                if raw_ctx_ptr:
+                    try: llama_cpp.llama_free(raw_ctx_ptr)
+                    except: pass
+
+                # C. Nullify Wrappers
+                if hasattr(self.model, '_model'): self.model._model = None
+                if hasattr(self.model, '_ctx'): self.model._ctx = None
+                
                 del self.model
                 self.model = None
 
             self.current_model_path = None
             self.current_mmproj_path = None
 
-            # Step 4: Aggressive garbage collection
-            for _ in range(3):
-                gc.collect()
-
-            # Step 5: Clear CUDA cache with synchronization
+            # 3. System Cleanup
+            import gc
+            gc.collect() 
+            gc.collect() 
             try:
                 import torch
                 if torch.cuda.is_available():
-                    torch.cuda.synchronize()
                     torch.cuda.empty_cache()
-                    # IPC collect helps with shared memory cleanup
-                    if hasattr(torch.cuda, 'ipc_collect'):
-                        torch.cuda.ipc_collect()
-                    torch.cuda.empty_cache()
-            except:
-                pass
+                    torch.cuda.ipc_collect()
+            except: pass
 
-            # Step 6: Small delay to ensure GPU operations complete
-            time.sleep(0.1)
+            print("✓ Resources released")
 
         except Exception as e:
             print(f"⚠️ Error freeing memory: {e}")
@@ -857,22 +877,6 @@ class GGUFInference:
         model_name = os.path.basename(model_path).lower()
         return 'vl' in model_name
 
-    def _reset_model_state(self):
-        """Safely reset model state (KV cache) for consecutive runs
-
-        Uses only the Python API reset() method which is safe and stable.
-        """
-        if self.model is None:
-            return
-
-        try:
-            # Use the official reset() method - this safely clears KV cache
-            if hasattr(self.model, 'reset'):
-                self.model.reset()
-        except Exception as e:
-            # Non-critical, just log and continue
-            print(f"⚠️ Could not reset model state: {e}")
-
     def _load_model(self, model_path: str, enable_vision: bool = False, mmproj_path: Optional[str] = None, force_reload: bool = False) -> bool:
         """Load GGUF model with llama-cpp-python
 
@@ -888,15 +892,14 @@ class GGUFInference:
                 self.model is not None and
                 self.current_model_path == model_path and
                 self.current_mmproj_path == mmproj_path):
-                # Model already loaded - reset state for clean inference
-                self._reset_model_state()
+                # Model already loaded, skip verbose output
                 return True
 
             # Unload previous model if model or mmproj changed, or force reload
             if self.model is not None:
-                # Unload with proper cleanup
+                # Unload silently
                 self._free_memory()
-                # Wait for memory to be fully released
+                # Wait a bit for memory to be fully released
                 time.sleep(0.5)
 
             if not self.llama_cpp_available:
@@ -919,6 +922,8 @@ class GGUFInference:
                 "n_ctx": 8192,
                 "n_gpu_layers": -1,  # Use GPU if available
                 "verbose": False,
+                "use_mmap": False, # Disable mmap for clean unload
+                "use_mlock": False,
             }
 
             # Load vision model if it's a VL model and vision is enabled
@@ -1254,6 +1259,26 @@ class GGUFInference:
                     print("⚠️ GGML compatibility error detected during force reload")
                 else:
                     raise
+
+        # --- NEW: Clear KV Cache to prevent context overflow on re-runs ---
+        try:
+             import llama_cpp
+             # Attempt to find the low-level context pointer
+             ctx_ptr = getattr(self.model, 'ctx', None)
+             if not ctx_ptr and hasattr(self.model, '_ctx'):
+                 ctx_ptr = getattr(self.model._ctx, 'ctx', self.model._ctx)
+
+             if ctx_ptr:
+                 # Strategy A: Modern API (v0.3+)
+                 if hasattr(llama_cpp, 'llama_get_memory'):
+                     mem = llama_cpp.llama_get_memory(ctx_ptr)
+                     llama_cpp.llama_memory_seq_rm(mem, -1, 0, -1)
+                 # Strategy B: Legacy API
+                 elif hasattr(llama_cpp, 'llama_kv_cache_seq_rm'):
+                     llama_cpp.llama_kv_cache_seq_rm(ctx_ptr, -1, 0, -1)
+        except Exception as e:
+             print(f"Warning: Could not clear KV cache at start: {e}")
+        # ---------------------------------------------------------------
 
         # Handle ggml error with auto-reinstall
         if ggml_error_occurred and auto_install_llama_cpp:
