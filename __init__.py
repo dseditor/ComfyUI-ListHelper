@@ -20,4 +20,16 @@ try:
 except Exception as e:
     print(f"⚠️ Failed to load person feature extractor nodes: {e}")
 
-__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
+# Import show text node
+try:
+    from .show_text import NODE_CLASS_MAPPINGS as SHOWTEXT_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as SHOWTEXT_DISPLAY_MAPPINGS
+    # Merge the mappings
+    NODE_CLASS_MAPPINGS = {**NODE_CLASS_MAPPINGS, **SHOWTEXT_MAPPINGS}
+    NODE_DISPLAY_NAME_MAPPINGS = {**NODE_DISPLAY_NAME_MAPPINGS, **SHOWTEXT_DISPLAY_MAPPINGS}
+except Exception as e:
+    print(f"⚠️ Failed to load show text node: {e}")
+
+# Web directory for frontend extensions
+WEB_DIRECTORY = "./web"
+
+__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', 'WEB_DIRECTORY']

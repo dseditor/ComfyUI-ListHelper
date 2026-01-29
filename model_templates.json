@@ -1,0 +1,166 @@
+{
+    "templates": {
+        "Qwen-Edit_AIO(LOW_VRAM_GGUF)": {
+            "description": "Qwen Edit AIO 低顯存 GGUF 版本",
+            "download_list": [
+                {
+                    "folder": "diffusion_models",
+                    "urls": [
+                        "https://huggingface.co/Arunk25/Qwen-Image-Edit-Rapid-AIO-GGUF/resolve/main/v23/Qwen-Rapid-NSFW-v23_Q4_K.gguf"
+                    ]
+                },
+                {
+                    "folder": "CLIP",
+                    "urls": [
+                        "https://huggingface.co/Phil2Sat/Qwen-Image-Edit-Rapid-AIO-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-abliterated/Qwen2.5-VL-7B-Instruct-abliterated.Q4_K_M.gguf",
+                        "https://huggingface.co/Phil2Sat/Qwen-Image-Edit-Rapid-AIO-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-abliterated/Qwen2.5-VL-7B-Instruct-abliterated.mmproj-Q8_0.gguf"
+                    ]
+                },
+                {
+                    "folder": "VAE",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+                    ]
+                }
+            ]
+        },
+        "QWen-Edit-2511(LOW_VRAM_GGUF)": {
+            "description": "Qwen Edit 2511 低顯存 GGUF 版本",
+            "download_list": [
+                {
+                    "folder": "diffusion_models",
+                    "urls": [
+                        "https://huggingface.co/unsloth/Qwen-Image-Edit-2511-GGUF/resolve/main/qwen-image-edit-2511-Q4_K_M.gguf"
+                    ]
+                },
+                {
+                    "folder": "CLIP",
+                    "urls": [
+                        "https://huggingface.co/Phil2Sat/Qwen-Image-Edit-Rapid-AIO-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-abliterated/Qwen2.5-VL-7B-Instruct-abliterated.Q4_K_M.gguf",
+                        "https://huggingface.co/Phil2Sat/Qwen-Image-Edit-Rapid-AIO-GGUF/resolve/main/Qwen2.5-VL-7B-Instruct-abliterated/Qwen2.5-VL-7B-Instruct-abliterated.mmproj-Q8_0.gguf"
+                    ]
+                },
+                {
+                    "folder": "VAE",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+                    ]
+                }
+            ]
+        },
+        "Qwen-Edit_AIO(FP8)": {
+            "description": "Qwen Edit AIO FP8 版本 (NSFW)",
+            "download_list": [
+                {
+                    "folder": "checkpoints",
+                    "urls": [
+                        "https://huggingface.co/Phr00t/Qwen-Image-Edit-Rapid-AIO/resolve/main/v23/Qwen-Rapid-AIO-NSFW-v23.safetensors"
+                    ]
+                }
+            ]
+        },
+        "Qwen-Edit_AIO(FP8)(SFW)": {
+            "description": "Qwen Edit AIO FP8 版本 (SFW)",
+            "download_list": [
+                {
+                    "folder": "checkpoints",
+                    "urls": [
+                        "https://huggingface.co/Phr00t/Qwen-Image-Edit-Rapid-AIO/resolve/main/v23/Qwen-Rapid-AIO-SFW-v23.safetensors"
+                    ]
+                }
+            ]
+        },
+        "Qwen-Edit-2511-Lightning(FP8)": {
+            "description": "Qwen Edit 2511 Lightning FP8 版本 (4步快速)",
+            "download_list": [
+                {
+                    "folder": "diffusion_models",
+                    "urls": [
+                        "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/qwen_image_edit_2511_fp8_e4m3fn_scaled_lightning_comfyui_4steps_v1.0.safetensors"
+                    ]
+                },
+                {
+                    "folder": "CLIP",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
+                    ]
+                },
+                {
+                    "folder": "VAE",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+                    ]
+                }
+            ]
+        },
+        "ZImage(LOW_VRAM_GGUF_6GB)": {
+            "description": "Z-Image 低顯存 GGUF 版本 (6GB)",
+            "download_list": [
+                {
+                    "folder": "diffusion_models",
+                    "urls": [
+                        "https://huggingface.co/unsloth/Z-Image-GGUF/resolve/main/z-image-Q4_K_M.gguf"
+                    ]
+                },
+                {
+                    "folder": "CLIP",
+                    "urls": [
+                        "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q4_K_M.gguf"
+                    ]
+                },
+                {
+                    "folder": "VAE",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
+                    ]
+                }
+            ]
+        },
+        "ZImage(FP8_10GB)": {
+            "description": "Z-Image FP8 版本 (10GB)",
+            "download_list": [
+                {
+                    "folder": "diffusion_models",
+                    "urls": [
+                        "https://huggingface.co/Kijai/Z-Image_comfy_fp8_scaled/resolve/main/z-image-turbo_fp8_scaled_e4m3fn_KJ.safetensors"
+                    ]
+                },
+                {
+                    "folder": "CLIP",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b_fp8_mixed.safetensors"
+                    ]
+                },
+                {
+                    "folder": "VAE",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
+                    ]
+                }
+            ]
+        },
+        "ZImage(FP16_12GB)": {
+            "description": "Z-Image FP16 版本 (12GB)",
+            "download_list": [
+                {
+                    "folder": "diffusion_models",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
+                    ]
+                },
+                {
+                    "folder": "CLIP",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b_fp8_mixed.safetensors"
+                    ]
+                },
+                {
+                    "folder": "VAE",
+                    "urls": [
+                        "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
+                    ]
+                }
+            ]
+        }
+    }
+}
