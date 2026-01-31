@@ -49,7 +49,7 @@
             ]
         },
         "Qwen-Edit_AIO(FP8)": {
-            "description": "Qwen Edit AIO FP8 版本 (NSFW)",
+            "description": "Qwen Edit AIO FP8  (NSFW)",
             "download_list": [
                 {
                     "folder": "checkpoints",
@@ -60,7 +60,7 @@
             ]
         },
         "Qwen-Edit_AIO(FP8)(SFW)": {
-            "description": "Qwen Edit AIO FP8 版本 (SFW)",
+            "description": "Qwen Edit AIO FP8  (SFW)",
             "download_list": [
                 {
                     "folder": "checkpoints",
@@ -71,7 +71,7 @@
             ]
         },
         "Qwen-Edit-2511-Lightning(FP8)": {
-            "description": "Qwen Edit 2511 Lightning FP8 版本 (4步快速)",
+            "description": "Qwen Edit 2511 Lightning FP8  (4Step)",
             "download_list": [
                 {
                     "folder": "diffusion_models",
@@ -93,19 +93,20 @@
                 }
             ]
         },
-        "ZImage(LOW_VRAM_GGUF_6GB)": {
-            "description": "Z-Image 低顯存 GGUF 版本 (6GB)",
+        "ZImage Turbo(LOW_VRAM_GGUF_6GB)": {
+            "description": "Z-Image Turbo LowVRAM GGUF (6GB)",
             "download_list": [
                 {
                     "folder": "diffusion_models",
                     "urls": [
-                        "https://huggingface.co/unsloth/Z-Image-GGUF/resolve/main/z-image-Q4_K_M.gguf"
+                        "https://huggingface.co/unsloth/Z-Image-Turbo-GGUF/resolve/main/z-image-turbo-Q4_K_M.gguf"
                     ]
                 },
                 {
                     "folder": "CLIP",
                     "urls": [
-                        "https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF/resolve/main/Qwen3-4B-Thinking-2507-Q4_K_M.gguf"
+                        "https://huggingface.co/Mungert/Qwen3-4B-abliterated-GGUF/resolve/main/Qwen3-4B-abliterated-q4_k_m.gguf"
+						
                     ]
                 },
                 {
@@ -116,8 +117,8 @@
                 }
             ]
         },
-        "ZImage(FP8_10GB)": {
-            "description": "Z-Image FP8 版本 (10GB)",
+        "ZImage Turbo(FP8_10GB)": {
+            "description": "Z-Image Turbo FP8 版本 (10GB)",
             "download_list": [
                 {
                     "folder": "diffusion_models",
@@ -139,8 +140,8 @@
                 }
             ]
         },
-        "ZImage(FP16_12GB)": {
-            "description": "Z-Image FP16 版本 (12GB)",
+        "ZImage Turbo(FP16_12GB)": {
+            "description": "Z-Image Turbo FP16 版本 (12GB)",
             "download_list": [
                 {
                     "folder": "diffusion_models",
@@ -158,6 +159,40 @@
                     "folder": "VAE",
                     "urls": [
                         "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
+                    ]
+                }
+            ]
+        },
+        "VAE(Ultraflux)": {
+            "description": "Ultraflux VAE",
+            "download_list": [
+                {
+                    "folder": "vae",
+                    "urls": [
+                        "https://huggingface.co/dseditor/Collection/resolve/main/aeultraflux.safetensors"
+                    ]
+                }
+            ]
+        },
+        "ZimageTurbo BestPhoto (FP8)": {
+            "description": "Z-Image Turbo BestPhoto FP8 版本",
+            "download_list": [
+                {
+                    "folder": "diffusion_models",
+                    "urls": [
+                        "https://civitai.com/api/download/models/2579970?type=Model&format=SafeTensor&size=full&fp=fp8"
+                    ]
+                },
+                {
+                    "folder": "CLIP",
+                    "urls": [
+                        "https://huggingface.co/Mungert/Qwen3-4B-abliterated-GGUF/resolve/main/Qwen3-4B-abliterated-q4_k_m.gguf"
+                    ]
+                },
+                {
+                    "folder": "VAE",
+                    "urls": [
+                        "https://huggingface.co/dseditor/Collection/resolve/main/aeultraflux.safetensors"
                     ]
                 }
             ]
