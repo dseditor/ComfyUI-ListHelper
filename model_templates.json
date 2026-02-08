@@ -173,29 +173,6 @@
                     ]
                 }
             ]
-        },
-        "ZimageTurbo BestPhoto (FP8)": {
-            "description": "Z-Image Turbo BestPhoto FP8 版本",
-            "download_list": [
-                {
-                    "folder": "diffusion_models",
-                    "urls": [
-                        "https://civitai.com/api/download/models/2579970?type=Model&format=SafeTensor&size=full&fp=fp8"
-                    ]
-                },
-                {
-                    "folder": "CLIP",
-                    "urls": [
-                        "https://huggingface.co/Mungert/Qwen3-4B-abliterated-GGUF/resolve/main/Qwen3-4B-abliterated-q4_k_m.gguf"
-                    ]
-                },
-                {
-                    "folder": "VAE",
-                    "urls": [
-                        "https://huggingface.co/dseditor/Collection/resolve/main/aeultraflux.safetensors"
-                    ]
-                }
-            ]
         }
     }
 }

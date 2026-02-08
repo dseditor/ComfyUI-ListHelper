@@ -1156,6 +1156,59 @@ class BatchToPSD:
 
 
 
+class ImageListSplitHeadTail:
+    """
+    將圖片清單拆分為影片頭尾格系統。
+    輸入 N 張圖片，產生 N-1 組起始/結束幀配對，
+    再透過 start_index 與 index_count 選取特定範圍的組數。
+    例如輸入 [1,2,3,4]（共 3 組配對）：
+      start_index=0, index_count=100 → 全部：(1,2)(2,3)(3,4)
+      start_index=0, index_count=1   → (1,2)
+      start_index=1, index_count=1   → (2,3)
+      start_index=1, index_count=2   → (2,3)(3,4)
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "start_index": ("INT", {
+                    "default": 0, "min": 0, "max": 999,
+                    "tooltip": "從第幾組配對開始取（0 = 第一組）"
+                }),
+                "index_count": ("INT", {
+                    "default": 100, "min": 1, "max": 999,
+                    "tooltip": "取幾組配對（預設 100，即全部）"
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE")
+    RETURN_NAMES = ("start_frames", "end_frames", "final_end_frame")
+    OUTPUT_IS_LIST = (True, True, False)
+    FUNCTION = "split_head_tail"
+    CATEGORY = "ListHelper/Tools"
+
+    def split_head_tail(self, images, start_index, index_count):
+        n = images.shape[0]
+
+        if n < 2:
+            raise ValueError("至少需要 2 張圖片才能拆分為頭尾格")
+
+        total_pairs = n - 1
+
+        # 限制 start_index 範圍
+        si = min(start_index, total_pairs - 1)
+        ei = min(si + index_count, total_pairs)
+
+        start_frames = [images[i:i+1] for i in range(si, ei)]
+        end_frames = [images[i:i+1] for i in range(si + 1, ei + 1)]
+        final_end_frame = images[ei:ei+1]
+
+        return (start_frames, end_frames, final_end_frame)
+
+
 NODE_CLASS_MAPPINGS = {
     "AudioListGenerator": AudioListGenerator,
     "AudioToFrameCount": AudioToFrameCount,
@@ -1175,6 +1228,7 @@ NODE_CLASS_MAPPINGS = {
     "PhotoMagazinePromptGenerator": PhotoMagazinePromptGenerator,
     "PhotoMagazineParser": PhotoMagazineParser,
     "PhotoMagazineMaker": PhotoMagazineMaker,
+    "ImageListSplitHeadTail": ImageListSplitHeadTail,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1195,5 +1249,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PhotoMagazinePromptGenerator": "Photo Magazine Prompt Generator",
     "PhotoMagazineParser": "Photo Magazine Parser",
     "PhotoMagazineMaker": "Photo Magazine Maker",
+    "ImageListSplitHeadTail": "Image List Split Head Tail",
 }
 

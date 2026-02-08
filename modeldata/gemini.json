@@ -1,5 +1,0 @@
-{
-    "endpoint": "https://generativelanguage.googleapis.com/v1beta/chat/completions",
-    "api_key": "",
-    "model_name": "gemini-2.5-flash"
-}
