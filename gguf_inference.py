@@ -27,9 +27,16 @@ SUGGESTED_MODELS = {
     "Download: QwenVL(2B)": "https://huggingface.co/second-state/Qwen2-VL-2B-Instruct-GGUF/resolve/main/Qwen2-VL-2B-Instruct-Q4_K_M.gguf",
 }
 
+# Suggested mmproj models with unique local filenames to prevent naming conflicts
 SUGGESTED_MMPROJ = {
-    "Download: mmproj": "https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/mmproj-F16.gguf",
-    "Download: QwenVL mmproj": "https://huggingface.co/noctrex/Huihui-Qwen3-VL-4B-Instruct-abliterated-i1-GGUF/resolve/main/mmproj-F16.gguf",
+    "Download: mmproj": {
+        "url": "https://huggingface.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF/resolve/main/mmproj-F16.gguf",
+        "filename": "qwen2.5-vl-7b-mmproj-f16.gguf"
+    },
+    "Download: QwenVL mmproj": {
+        "url": "https://huggingface.co/noctrex/Huihui-Qwen3-VL-4B-Instruct-abliterated-i1-GGUF/resolve/main/mmproj-F16.gguf",
+        "filename": "qwen3-vl-4b-mmproj-f16.gguf"
+    },
 }
 
 class GGUFInference:
@@ -1186,10 +1193,12 @@ class GGUFInference:
                 print("⚠️ No mmproj file, falling back to text-only mode")
                 enable_vision = False
             else:
-                # Check if mmproj is a suggested download
+                # Check if selected mmproj is a suggested download option
                 if mmproj_file in SUGGESTED_MMPROJ:
-                    download_url = SUGGESTED_MMPROJ[mmproj_file]
-                    filename = os.path.basename(download_url)
+                    # Retrieve the specific URL and unique filename from the dictionary
+                    mmproj_info = SUGGESTED_MMPROJ[mmproj_file]
+                    download_url = mmproj_info["url"]
+                    filename = mmproj_info["filename"]
 
                     # Get clip folder path for downloading
                     try:
@@ -1208,15 +1217,15 @@ class GGUFInference:
                     if enable_vision:
                         mmproj_path = os.path.join(download_dir, filename)
 
-                        # Check if file already exists
+                        # Check if the unique file already exists locally
                         if not os.path.exists(mmproj_path):
-                            print(f"Downloading mmproj...")
+                            print(f"Downloading mmproj as {filename}...")
                             if not self._download_file(download_url, mmproj_path):
                                 print(f"⚠️ Download failed")
                                 enable_vision = False
                                 mmproj_path = None
                 else:
-                    # Find full path for mmproj from text_encoders and clip folders
+                    # Handle existing local files from text_encoders or clip folders
                     mmproj_files = self._get_mmproj_files()
                     for full_path in mmproj_files:
                         if os.path.basename(full_path) == mmproj_file:
