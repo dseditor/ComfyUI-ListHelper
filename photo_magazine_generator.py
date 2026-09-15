@@ -3,13 +3,84 @@ import os
 from PIL import Image
 import torch
 import numpy as np
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
-from reportlab.pdfgen import canvas
-from reportlab.lib.colors import HexColor
-from reportlab.pdfbase import pdfutils
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase.pdfmetrics import registerFont, stringWidth
+import sys
+import subprocess
+
+# ==================== reportlab 延遲載入 ====================
+# reportlab 只有 PhotoMagazineMaker 產生 PDF 時才需要。
+# 若在模組頂層直接 import，缺少套件時會讓整個 ListHelper 節點套件載入失敗，
+# 因此改為延遲載入：真正要出 PDF 時才 import，缺少時才即時安裝。
+A4 = None
+mm = None
+canvas = None
+HexColor = None
+TTFont = None
+registerFont = None
+stringWidth = None
+
+_REPORTLAB_READY = False
+
+
+def _bind_reportlab():
+    """把 reportlab 的符號綁定到模組全域變數（供既有程式碼直接使用）"""
+    global A4, mm, canvas, HexColor, TTFont, registerFont, stringWidth, _REPORTLAB_READY
+
+    from reportlab.lib.pagesizes import A4 as _A4
+    from reportlab.lib.units import mm as _mm
+    from reportlab.pdfgen import canvas as _canvas
+    from reportlab.lib.colors import HexColor as _HexColor
+    from reportlab.pdfbase.ttfonts import TTFont as _TTFont
+    from reportlab.pdfbase.pdfmetrics import registerFont as _registerFont, stringWidth as _stringWidth
+
+    A4 = _A4
+    mm = _mm
+    canvas = _canvas
+    HexColor = _HexColor
+    TTFont = _TTFont
+    registerFont = _registerFont
+    stringWidth = _stringWidth
+    _REPORTLAB_READY = True
+
+
+def ensure_reportlab(auto_install=True):
+    """
+    確保 reportlab 可用。
+
+    Args:
+        auto_install: 找不到套件時是否自動安裝
+
+    Raises:
+        RuntimeError: 套件不存在且安裝失敗
+    """
+    if _REPORTLAB_READY:
+        return
+
+    try:
+        _bind_reportlab()
+        return
+    except ImportError:
+        pass
+
+    if not auto_install:
+        raise RuntimeError("需要 reportlab 套件才能產生 PDF，請執行：pip install reportlab")
+
+    print("PhotoMagazine: 未偵測到 reportlab，正在自動安裝（僅需一次）...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
+    except Exception as e:
+        raise RuntimeError(
+            f"reportlab 自動安裝失敗：{e}\n請手動執行：{sys.executable} -m pip install reportlab"
+        )
+
+    try:
+        _bind_reportlab()
+    except ImportError as e:
+        raise RuntimeError(
+            f"reportlab 安裝後仍無法載入：{e}\n請重新啟動 ComfyUI 後再試一次。"
+        )
+
+    print("PhotoMagazine: reportlab 安裝完成")
+
 
 class PhotoMagazinePromptGenerator:
     """
@@ -518,8 +589,13 @@ class PhotoMagazineMaker:
         import random
         return random.choice(all_images)
     
-    def create_full_bleed_image(self, pil_image, width=210*mm, height=297*mm):
+    def create_full_bleed_image(self, pil_image, width=None, height=None):
         """創建滿版圖片"""
+        # 預設 A4 尺寸需在呼叫時才計算（mm 由 ensure_reportlab 延遲綁定）
+        if width is None:
+            width = 210 * mm
+        if height is None:
+            height = 297 * mm
         try:
             # 計算目標比例
             target_ratio = width / height
@@ -1769,6 +1845,13 @@ class PhotoMagazineMaker:
 
     def make_photo_magazine(self, images, json_data, template, layout, font, compress_pdf, disable_cover_layout, output_path):
         """製作寫真雜誌"""
+        # 此節點是唯一需要 reportlab 的地方，執行時才載入（必要時自動安裝）
+        try:
+            ensure_reportlab()
+        except RuntimeError as e:
+            print(f"PhotoMagazineMaker: {e}")
+            return (str(e),)
+
         try:
             # 根據ComfyUI規範，當INPUT_IS_LIST=True時，所有參數都是列表
             # 從列表中提取實際值

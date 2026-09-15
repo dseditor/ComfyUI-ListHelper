@@ -2,15 +2,8 @@ import os
 import re
 import shutil
 import json
-import time
 import folder_paths
 from typing import List, Dict, Tuple, Optional
-
-try:
-    from server import PromptServer
-    HAS_SERVER = True
-except ImportError:
-    HAS_SERVER = False
 
 
 class ModelDownloader:
@@ -73,9 +66,6 @@ class ModelDownloader:
                     "default": "無",
                     "tooltip": "選擇模型範本。選擇範本後將使用範本中的下載列表，忽略上方手動輸入的內容。\n選擇「無」時使用上方手動輸入的下載列表。"
                 }),
-            },
-            "hidden": {
-                "unique_id": "UNIQUE_ID",
             }
         }
 
@@ -85,20 +75,8 @@ class ModelDownloader:
     OUTPUT_NODE = True
     CATEGORY = "ListHelper/Tools"
 
-    def _send_progress(self, unique_id, data):
-        """透過 WebSocket 發送下載進度事件"""
-        if HAS_SERVER and unique_id:
-            try:
-                PromptServer.instance.send_sync("model_download_progress", {
-                    "node_id": str(unique_id),
-                    **data
-                })
-            except Exception as e:
-                print(f"ModelDownloader: 進度推送失敗：{e}")
-
     def download_models(self, download_list: str, use_s3c: bool, use_hf_download: bool,
-                        chunk_size_mb: int, max_workers: int, model_template: str,
-                        unique_id=None) -> Tuple[str]:
+                        chunk_size_mb: int, max_workers: int, model_template: str) -> Tuple[str]:
         """
         下載模型到 ComfyUI/models 資料夾
 
@@ -109,7 +87,6 @@ class ModelDownloader:
             chunk_size_mb: 區塊大小 (MB)
             max_workers: 最大平行執行緒數
             model_template: 模型範本名稱
-            unique_id: 節點唯一 ID（由 ComfyUI 自動傳入）
 
         Returns:
             狀態訊息
@@ -152,14 +129,7 @@ class ModelDownloader:
         elif use_s3c and not s3c_available:
             print("ModelDownloader: 警告 - use_s3c 已開啟但 s3impleclient 未安裝")
 
-        # 發送檢查狀態
-        self._send_progress(unique_id, {
-            "status": "checking",
-            "message": "正在檢查現有檔案...",
-            "progress": 0,
-            "current_file": 0,
-            "total_files": 0,
-        })
+        print("ModelDownloader: 正在檢查現有檔案...")
 
         # 檢查檔案是否已存在且完整
         files_to_download, skipped_files, incomplete_files = self._check_existing_files(
@@ -169,33 +139,12 @@ class ModelDownloader:
         if not files_to_download:
             skip_msg = "所有檔案已存在且完整。\n已跳過：\n" + "\n".join(f"  - {f}" for f in skipped_files)
             print(f"ModelDownloader: {skip_msg}")
-            self._send_progress(unique_id, {
-                "status": "complete",
-                "message": "所有檔案已存在，無需下載",
-                "progress": 100,
-                "current_file": 0,
-                "total_files": 0,
-            })
             return (skip_msg,)
 
         # 開始下載
         results = []
         total_files = sum(len(urls) for urls in files_to_download.values())
         current_file = 0
-
-        # 建立進度回調
-        def progress_callback(filename, downloaded, total, cur_file, tot_files):
-            progress = (downloaded / total * 100) if total > 0 else 0
-            self._send_progress(unique_id, {
-                "status": "downloading",
-                "filename": filename,
-                "progress": round(progress, 1),
-                "downloaded": downloaded,
-                "total": total,
-                "current_file": cur_file,
-                "total_files": tot_files,
-                "message": f"正在下載：{filename}",
-            })
 
         try:
             for folder_name, urls in files_to_download.items():
@@ -212,31 +161,13 @@ class ModelDownloader:
                     print(f"  URL: {url}")
                     print(f"  目標：{dest_path}")
 
-                    # 發送開始下載事件
-                    self._send_progress(unique_id, {
-                        "status": "downloading",
-                        "filename": filename,
-                        "progress": 0,
-                        "downloaded": 0,
-                        "total": 0,
-                        "current_file": current_file,
-                        "total_files": total_files,
-                        "message": f"正在下載：{filename}",
-                    })
-
                     try:
                         if use_hf_download and self._is_huggingface_url(url):
                             # 使用 HF Hub 下載，然後搬移到目標資料夾
-                            result = self._download_with_hf_hub(url, dest_path, s3c, patch_applied,
-                                                                 progress_callback=progress_callback,
-                                                                 current_file=current_file,
-                                                                 total_files=total_files)
+                            result = self._download_with_hf_hub(url, dest_path, s3c, patch_applied)
                         else:
                             # 使用普通 HTTP 下載
-                            result = self._download_with_http(url, dest_path,
-                                                               progress_callback=progress_callback,
-                                                               current_file=current_file,
-                                                               total_files=total_files)
+                            result = self._download_with_http(url, dest_path)
 
                         results.append(result)
 
@@ -244,14 +175,6 @@ class ModelDownloader:
                         error_msg = f"✗ {filename} - 錯誤：{str(e)}"
                         results.append(error_msg)
                         print(f"  {error_msg}")
-                        self._send_progress(unique_id, {
-                            "status": "error",
-                            "filename": filename,
-                            "progress": 0,
-                            "current_file": current_file,
-                            "total_files": total_files,
-                            "message": f"下載失敗：{str(e)}",
-                        })
 
         finally:
             # 還原 HF patch
@@ -262,17 +185,9 @@ class ModelDownloader:
                 except Exception as e:
                     print(f"\nModelDownloader: 無法還原 HF patch ({str(e)})")
 
-        # 發送下載完成事件
         success_count = sum(1 for r in results if r.startswith("✓"))
         fail_count = sum(1 for r in results if r.startswith("✗"))
-        self._send_progress(unique_id, {
-            "status": "complete",
-            "message": f"下載完成！成功：{success_count}/{total_files}，失敗：{fail_count}",
-            "progress": 100,
-            "current_file": total_files,
-            "total_files": total_files,
-            "has_downloads": True,
-        })
+        print(f"\nModelDownloader: 下載完成！成功：{success_count}/{total_files}，失敗：{fail_count}")
 
         # 產生最終狀態訊息
         return self._generate_status_message(results, skipped_files, incomplete_files, total_files)
@@ -506,9 +421,7 @@ class ModelDownloader:
     # ==================== 下載方法 ====================
 
     def _download_with_hf_hub(self, url: str, dest_path: str,
-                              s3c: Optional[object], patch_applied: bool,
-                              progress_callback=None, current_file: int = 0,
-                              total_files: int = 0) -> str:
+                              s3c: Optional[object], patch_applied: bool) -> str:
         """
         使用 HuggingFace Hub 下載，然後搬移到目標資料夾
 
@@ -517,9 +430,6 @@ class ModelDownloader:
             dest_path: 最終目標路徑
             s3c: s3impleclient module（如果可用）
             patch_applied: S3C patch 是否已套用
-            progress_callback: 進度回調函數
-            current_file: 當前檔案序號
-            total_files: 總檔案數
 
         Returns:
             結果訊息
@@ -532,9 +442,7 @@ class ModelDownloader:
         print(f"  使用 HF Hub 下載...")
         print(f"  Repo: {repo_id}, File: {file_path}")
 
-        # HF Hub 下載不支援細粒度進度，發送一個「下載中」狀態
-        if progress_callback:
-            progress_callback(filename, 0, 0, current_file, total_files)
+        # HF Hub 自行在終端機輸出下載進度條
 
         # 使用 HF Hub 下載到快取
         downloaded_path = hf_hub_download(
@@ -558,8 +466,6 @@ class ModelDownloader:
                 size_mb = os.path.getsize(dest_path) / (1024 * 1024)
                 size_bytes = os.path.getsize(dest_path)
                 method = "HF Hub + S3C 加速" if patch_applied else "HF Hub"
-                if progress_callback:
-                    progress_callback(filename, size_bytes, size_bytes, current_file, total_files)
                 result = f"✓ {filename} ({size_mb:.2f} MB) ({method})"
                 print(f"  ✓ 下載並搬移成功 - {size_mb:.2f} MB")
                 return result
@@ -571,24 +477,17 @@ class ModelDownloader:
             size_mb = os.path.getsize(dest_path) / (1024 * 1024)
             size_bytes = os.path.getsize(dest_path)
             method = "HF Hub + S3C 加速" if patch_applied else "HF Hub"
-            if progress_callback:
-                progress_callback(filename, size_bytes, size_bytes, current_file, total_files)
             result = f"✓ {filename} ({size_mb:.2f} MB) ({method})"
             print(f"  ✓ 下載成功 - {size_mb:.2f} MB")
             return result
 
-    def _download_with_http(self, url: str, dest_path: str,
-                            progress_callback=None, current_file: int = 0,
-                            total_files: int = 0) -> str:
+    def _download_with_http(self, url: str, dest_path: str) -> str:
         """
         使用普通 HTTP 下載（支援 Civitai 等需要特殊處理的網站）
 
         Args:
             url: 下載 URL
             dest_path: 目標路徑
-            progress_callback: 進度回調函數
-            current_file: 當前檔案序號
-            total_files: 總檔案數
 
         Returns:
             結果訊息
@@ -676,7 +575,7 @@ class ModelDownloader:
                     downloaded = 0
                     chunk_size = 8192 * 4  # 增加 chunk size 提升效能
                     last_progress = 0
-                    last_callback_time = time.time()
+                    next_size_milestone = 10 * 1024 * 1024  # 未知總大小時每 10MB 回報一次
 
                     while True:
                         chunk = response.read(chunk_size)
@@ -686,20 +585,16 @@ class ModelDownloader:
                         out_file.write(chunk)
                         downloaded += len(chunk)
 
-                        # 每 10% 顯示進度（終端機）
+                        # 終端機進度：已知總大小時每 10%，未知時每 10MB
                         if total_size > 0:
                             progress = int(downloaded * 100 / total_size)
                             if progress >= last_progress + 10:
                                 print(f"  進度：{progress}% ({downloaded / (1024*1024):.2f} MB / {total_size / (1024*1024):.2f} MB)")
                                 last_progress = progress
-                        elif downloaded % (10 * 1024 * 1024) == 0:  # 每 10MB 顯示一次
+                        elif downloaded >= next_size_milestone:
                             print(f"  已下載：{downloaded / (1024*1024):.2f} MB")
-
-                        # WebSocket 進度推送（限制頻率，每 0.5 秒最多一次）
-                        now = time.time()
-                        if progress_callback and (now - last_callback_time >= 0.5):
-                            progress_callback(filename, downloaded, total_size, current_file, total_files)
-                            last_callback_time = now
+                            # 用門檻而非整除判斷，chunk 大小改變時仍然可靠
+                            next_size_milestone = downloaded + 10 * 1024 * 1024
 
             # 檢查下載的檔案是否有效（不是錯誤頁面）
             downloaded_size = os.path.getsize(temp_path)
@@ -716,8 +611,6 @@ class ModelDownloader:
 
             size_bytes = os.path.getsize(dest_path)
             size_mb = size_bytes / (1024 * 1024)
-            if progress_callback:
-                progress_callback(filename, size_bytes, size_bytes, current_file, total_files)
             result = f"✓ {filename} ({size_mb:.2f} MB) (HTTP)"
             print(f"  ✓ 下載成功 - {size_mb:.2f} MB")
             return result
